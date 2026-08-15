@@ -1,8 +1,4 @@
-import { useState } from "react";
 import { Link, useNavigate } from "react-router";
-import { toast } from "sonner";
-import { api } from "@/convex/_generated/api";
-import { useMutation } from "convex/react";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -19,44 +15,15 @@ import { getResource } from "@/data/catalog";
 import { ArrowRight, Lock, ShoppingBag, Trash2 } from "lucide-react";
 
 export function CartDrawer() {
-  const { cartOpen, setCartOpen, cart, removeFromCart, clearCart, cartTotal } =
+  const { cartOpen, setCartOpen, cart, removeFromCart, cartTotal } =
     useSite();
   const { isAuthenticated } = useAuth();
-  const purchase = useMutation(api.library.purchase);
   const navigate = useNavigate();
-  const [checkingOut, setCheckingOut] = useState(false);
 
-  const handleCheckout = async () => {
+  const handleCheckout = () => {
     if (cart.length === 0) return;
-    setCheckingOut(true);
-    try {
-      if (!isAuthenticated) {
-        setCartOpen(false);
-        toast.info("Sign in to complete your purchase", {
-          description: "Your cart is saved — it will be waiting for you.",
-        });
-        navigate("/auth?returnTo=/dashboard");
-        return;
-      }
-      await purchase({
-        resourceIds: cart.map((item) => item.slug),
-        kind: "paid",
-        pricePaid: cartTotal,
-      });
-      clearCart();
-      setCartOpen(false);
-      toast.success("Added to your library", {
-        description: "Your resources are now available in your library.",
-      });
-      navigate("/dashboard");
-    } catch (err) {
-      console.error(err);
-      toast.error("Something went wrong", {
-        description: "Please try the checkout again.",
-      });
-    } finally {
-      setCheckingOut(false);
-    }
+    setCartOpen(false);
+    navigate(isAuthenticated ? "/checkout" : "/auth?returnTo=/checkout");
   };
 
   return (
@@ -153,20 +120,16 @@ export function CartDrawer() {
                 <Button
                   className="w-full rounded-full"
                   size="lg"
-                  disabled={checkingOut}
                   onClick={handleCheckout}
                 >
-                  {checkingOut ? (
-                    "Processing…"
-                  ) : (
-                    <>
-                      <Lock className="size-4" />
-                      {isAuthenticated ? "Complete purchase" : "Sign in to check out"}
-                    </>
-                  )}
+                  <Lock className="size-4" />
+                  {isAuthenticated
+                    ? "Continue to checkout"
+                    : "Sign in to check out"}
                 </Button>
                 <p className="text-center text-[11px] text-muted-foreground">
-                  Secure digital delivery — resources appear in your library instantly.
+                  Secure digital delivery — resources appear in your library
+                  instantly after purchase.
                 </p>
               </div>
             </SheetFooter>

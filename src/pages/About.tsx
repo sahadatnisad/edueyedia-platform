@@ -15,6 +15,10 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Reveal } from "@/components/Reveal";
 import { SectionHeading } from "@/components/SectionHeading";
+import { resources } from "@/data/catalog";
+
+/** Total reader reviews across the published library (from the catalog). */
+const totalReviews = resources.reduce((sum, r) => sum + r.reviewCount, 0);
 
 const PRINCIPLE_STRIP = [
   {
