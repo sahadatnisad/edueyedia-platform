@@ -41,11 +41,11 @@ export function FinalCTA() {
               <ArrowRight className="size-4 transition-transform duration-300 group-hover:translate-x-1" />
             </Link>
             <Link
-              to="/insights"
+              to="/learn"
               className="inline-flex h-12 items-center gap-2 rounded-full border border-white/20 bg-white/5 px-8 text-sm font-semibold text-white backdrop-blur transition-all hover:-translate-y-0.5 hover:border-white/40 hover:bg-white/10"
             >
               <BookOpen className="size-4 text-gold" />
-              Read Insights
+              Start Learning
             </Link>
           </div>
         </Reveal>

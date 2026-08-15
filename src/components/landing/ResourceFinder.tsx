@@ -105,7 +105,7 @@ export function ResourceFinder() {
                 <div className="mt-1 rounded-2xl border border-hairline bg-ivory/60 p-5 dark:border-white/10 dark:bg-white/[0.03]">
                   <p className="flex items-center gap-2 text-xs font-bold tracking-[0.18em] text-navy uppercase dark:text-slate-200">
                     <FileText className="size-3.5 text-gold" />
-                    Start with an insight
+                    Start with a guide
                   </p>
                   <div className="mt-3 flex flex-col gap-2.5">
                     {option.articleSlugs.map((slug) => {
@@ -114,7 +114,7 @@ export function ResourceFinder() {
                       return (
                         <Link
                           key={slug}
-                          to={`/insights/${slug}`}
+                          to={`/learn/${slug}`}
                           className="group flex items-baseline justify-between gap-4 text-sm"
                         >
                           <span className="font-medium text-navy transition-colors group-hover:text-teal dark:text-slate-200 dark:group-hover:text-teal-bright">

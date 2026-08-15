@@ -15,7 +15,7 @@ const FILTERS = [
 
 type FilterId = (typeof FILTERS)[number]["id"];
 
-export default function Insights() {
+export default function Learn() {
   const [filter, setFilter] = useState<FilterId>("all");
 
   const featured = articles.find((a) => a.featured) ?? articles[0];
@@ -39,14 +39,14 @@ export default function Insights() {
               <div className="flex items-center gap-3">
                 <span className="h-px w-10 bg-gold" />
                 <p className="text-xs font-bold tracking-[0.24em] text-teal uppercase dark:text-teal-bright">
-                  Insights
+                  Learn
                 </p>
               </div>
               <h1 className="font-serif mt-5 max-w-2xl text-4xl leading-[1.1] text-navy text-balance sm:text-6xl dark:text-slate-50">
-                Ideas, Guides & Insights
+                Learn with Edueyedia
               </h1>
               <p className="font-bangla mt-4 max-w-xl text-lg leading-relaxed text-ink-soft dark:text-slate-300">
-                জ্ঞান, গাইড ও বিশ্লেষণ — research methods, scholarship strategy and academic writing.
+                জ্ঞান, গাইড ও বিশ্লেষণ — research methods, scholarship strategy and academic writing, in Bangla and English.
               </p>
             </Reveal>
           </div>

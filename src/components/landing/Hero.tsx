@@ -66,7 +66,7 @@ export function Hero() {
 
           <Reveal delay={0.22}>
             <p className="font-bangla mt-5 max-w-xl text-base leading-relaxed text-ink-soft sm:text-lg dark:text-slate-300">
-              গবেষণা, স্কলারশিপ, উচ্চশিক্ষা ও ক্যারিয়ারের জন্য প্রয়োজনীয় গাইড,
+              গবেষণা, স্কলারশিপ ও উচ্চশিক্ষার জন্য প্রয়োজনীয় গাইড,
               বিশ্লেষণ, PDF ও ডিজিটাল রিসোর্স — সহজ বাংলায়।
             </p>
           </Reveal>
@@ -81,11 +81,11 @@ export function Hero() {
                 <ArrowRight className="size-4 transition-transform duration-300 group-hover:translate-x-1" />
               </Link>
               <Link
-                to="/insights"
+                to="/learn"
                 className="inline-flex h-12 items-center gap-2 rounded-full border border-hairline bg-white px-7 text-sm font-semibold text-navy transition-all hover:-translate-y-0.5 hover:border-slate-300 dark:border-white/15 dark:bg-white/5 dark:text-slate-100 dark:hover:border-teal/40"
               >
                 <BookOpen className="size-4 text-teal" />
-                Read Insights
+                Start Learning
               </Link>
             </div>
           </Reveal>

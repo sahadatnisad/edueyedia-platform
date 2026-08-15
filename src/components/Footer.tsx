@@ -8,7 +8,7 @@ const COLUMNS: { title: string; links: { label: string; to: string }[] }[] = [
       { label: "Research", to: "/resources?tab=research" },
       { label: "Scholarships", to: "/resources?tab=scholarships" },
       { label: "Study Abroad", to: "/resources?tab=study-abroad" },
-      { label: "Career", to: "/resources?tab=career" },
+      { label: "Learn", to: "/learn" },
     ],
   },
   {
@@ -16,14 +16,14 @@ const COLUMNS: { title: string; links: { label: string; to: string }[] }[] = [
     links: [
       { label: "Premium Resources", to: "/resources" },
       { label: "Free Library", to: "/resources?tab=free" },
-      { label: "Insights", to: "/insights" },
       { label: "Templates", to: "/resources?tab=free" },
+      { label: "Curated Collections", to: "/resources" },
     ],
   },
   {
     title: "Edueyedia",
     links: [
-      { label: "About", to: "/insights" },
+      { label: "About", to: "/about" },
       { label: "Contact", to: "mailto:hello@edueyedia.com" },
       { label: "FAQ", to: "/resources" },
     ],

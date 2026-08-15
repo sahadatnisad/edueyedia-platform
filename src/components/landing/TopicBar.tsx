@@ -7,7 +7,6 @@ const TOPICS: { label: string; bn: string; to: string }[] = [
   { label: "Academic Writing", bn: "অ্যাকাডেমিক রাইটিং", to: "/resources?tab=academic-writing" },
   { label: "Thesis", bn: "থিসিস", to: "/resources?tab=research" },
   { label: "Study Abroad", bn: "বিদেশে পড়াশোনা", to: "/resources?tab=study-abroad" },
-  { label: "Career", bn: "ক্যারিয়ার", to: "/resources?tab=career" },
   { label: "Templates", bn: "টেমপ্লেট", to: "/resources?tab=free" },
   { label: "Free Resources", bn: "ফ্রি রিসোর্স", to: "/resources?tab=free" },
 ];

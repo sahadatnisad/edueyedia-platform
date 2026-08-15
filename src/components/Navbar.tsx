@@ -25,9 +25,9 @@ const NAV_LINKS = [
   { label: "Research", to: "/resources?tab=research" },
   { label: "Scholarships", to: "/resources?tab=scholarships" },
   { label: "Study Abroad", to: "/resources?tab=study-abroad" },
-  { label: "Career", to: "/resources?tab=career" },
   { label: "Resources", to: "/resources" },
-  { label: "Insights", to: "/insights" },
+  { label: "Learn", to: "/learn" },
+  { label: "About", to: "/about" },
 ];
 
 export function Navbar() {

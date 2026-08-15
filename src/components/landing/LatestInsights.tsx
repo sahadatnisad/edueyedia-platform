@@ -14,17 +14,17 @@ export function LatestInsights() {
       <div className="mx-auto max-w-6xl px-6">
         <div className="flex flex-col gap-8 md:flex-row md:items-end md:justify-between">
           <SectionHeading
-            eyebrow="Insights"
-            title="Ideas, Guides & Insights"
+            eyebrow="Learn"
+            title="Learn with ideas & guides"
             titleBn="জ্ঞান, গাইড ও বিশ্লেষণ"
             description="Long-form reading for curious minds — research methods, scholarship strategy and academic writing, published in Bangla and English."
           />
           <Reveal delay={0.15}>
             <Link
-              to="/insights"
+              to="/learn"
               className="link-underline group inline-flex w-fit items-center gap-1.5 text-sm font-semibold text-navy dark:text-slate-100"
             >
-              All insights
+              Explore all guides
               <ArrowUpRight className="size-4 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
             </Link>
           </Reveal>
@@ -48,7 +48,7 @@ export function LatestInsights() {
                 </p>
               </div>
               <Link
-                to={`/insights/${feature.slug}`}
+                to={`/learn/${feature.slug}`}
                 className="group inline-flex shrink-0 items-center gap-2 rounded-full bg-navy px-6 py-3 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-navy/90 dark:bg-teal dark:text-navy-deep"
               >
                 Keep reading

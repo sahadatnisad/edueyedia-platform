@@ -8,7 +8,14 @@ import { SiteProviders } from "@/components/site/SiteProviders";
 import { ThemeProvider } from "next-themes";
 import React, { StrictMode, useEffect, lazy, Suspense } from "react";
 import { createRoot } from "react-dom/client";
-import { BrowserRouter, Route, Routes, useLocation } from "react-router";
+import {
+  BrowserRouter,
+  Navigate,
+  Route,
+  Routes,
+  useLocation,
+  useParams,
+} from "react-router";
 import "./index.css";
 
 // Lazy load route components for better code splitting
@@ -17,8 +24,9 @@ const AuthPage = lazy(() => import("./pages/Auth.tsx"));
 const Dashboard = lazy(() => import("./pages/Dashboard.tsx"));
 const Resources = lazy(() => import("./pages/Resources.tsx"));
 const ResourceDetail = lazy(() => import("./pages/ResourceDetail.tsx"));
-const Insights = lazy(() => import("./pages/Insights.tsx"));
+const Learn = lazy(() => import("./pages/Learn.tsx"));
 const ArticlePage = lazy(() => import("./pages/ArticlePage.tsx"));
+const About = lazy(() => import("./pages/About.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 
 // Simple loading fallback for route transitions
@@ -88,6 +96,12 @@ class RootErrorBoundary extends React.Component<
 
 const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string);
 
+/** Redirect legacy /insights/:slug article URLs to /learn/:slug. */
+function InsightsSlugRedirect() {
+  const { slug } = useParams<{ slug: string }>();
+  return <Navigate to={`/learn/${slug ?? ""}`} replace />;
+}
+
 function RouteSyncer() {
   const location = useLocation();
   useEffect(() => {
@@ -144,8 +158,17 @@ createRoot(document.getElementById("root")!).render(
                   />
                   <Route path="/resources" element={<Resources />} />
                   <Route path="/resources/:slug" element={<ResourceDetail />} />
-                  <Route path="/insights" element={<Insights />} />
-                  <Route path="/insights/:slug" element={<ArticlePage />} />
+                  <Route path="/learn" element={<Learn />} />
+                  <Route path="/learn/:slug" element={<ArticlePage />} />
+                  <Route path="/about" element={<About />} />
+                  {/* Legacy /insights URLs redirect to /learn */}
+                  <Route path="/insights" element={<Navigate to="/learn" replace />} />
+                  <Route
+                    path="/insights/:slug"
+                    element={
+                      <InsightsSlugRedirect />
+                    }
+                  />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </Suspense>

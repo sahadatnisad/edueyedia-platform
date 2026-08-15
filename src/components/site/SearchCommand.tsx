@@ -56,22 +56,16 @@ const TOPICS: { title: string; subtitle: string; to: string; value: string }[] =
     value: "study abroad বিদেশে উচ্চশিক্ষা ielts toefl admission",
   },
   {
-    title: "Career",
-    subtitle: "ক্যারিয়ার — CV, transitions, research careers",
-    to: "/resources?tab=career",
-    value: "career ক্যারিয়ার cv job research assistant",
-  },
-  {
     title: "Free Resources",
     subtitle: "The Edueyedia Library — free templates & checklists",
     to: "/resources?tab=free",
     value: "free resources library templates checklists ফ্রি",
   },
   {
-    title: "Insights",
+    title: "Learn",
     subtitle: "জ্ঞান, গাইড ও বিশ্লেষণ — articles & guides",
-    to: "/insights",
-    value: "insights articles blog জ্ঞান গাইড বিশ্লেষণ",
+    to: "/learn",
+    value: "learn articles guides blog জ্ঞান গাইড বিশ্লেষণ",
   },
 ];
 
@@ -112,7 +106,7 @@ export function SearchCommand() {
       title: a.title,
       subtitle: `${a.titleBn ?? ""} • ${a.categoryLabel} • ${a.readingTime}`,
       group: "Articles",
-      to: `/insights/${a.slug}`,
+      to: `/learn/${a.slug}`,
       value: `${a.title} ${a.titleBn ?? ""} ${a.categoryLabel} ${a.excerpt} ${a.keywords.join(" ")}`,
     }));
 

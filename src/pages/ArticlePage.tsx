@@ -59,10 +59,10 @@ export default function ArticlePage() {
             Article not found
           </p>
           <Link
-            to="/insights"
+            to="/learn"
             className="link-underline text-sm font-semibold text-teal dark:text-teal-bright"
           >
-            Back to Insights
+            Back to Learn
           </Link>
         </main>
         <Footer />
@@ -94,10 +94,10 @@ export default function ArticlePage() {
           <header className="mx-auto max-w-3xl">
             <Reveal>
               <Link
-                to="/insights"
+                to="/learn"
                 className="inline-flex items-center gap-1.5 text-xs font-semibold text-ink-soft transition-colors hover:text-navy dark:text-slate-400 dark:hover:text-white"
               >
-                <ArrowLeft className="size-3.5" /> Insights
+                <ArrowLeft className="size-3.5" /> Learn
               </Link>
             </Reveal>
             <Reveal delay={0.08}>
@@ -311,7 +311,7 @@ export default function ArticlePage() {
             <section className="mt-20 border-t border-hairline pt-12 dark:border-white/10">
               <div className="flex items-end justify-between">
                 <h2 className="font-serif text-3xl text-navy dark:text-slate-50">
-                  Resources for this insight
+                  Resources for this guide
                 </h2>
                 <Link
                   to="/resources"
@@ -340,7 +340,7 @@ export default function ArticlePage() {
                 {moreArticles.map((a) => (
                   <Link
                     key={a.slug}
-                    to={`/insights/${a.slug}`}
+                    to={`/learn/${a.slug}`}
                     className="group flex items-start gap-4 rounded-3xl border border-hairline bg-white p-5 transition-all duration-300 hover:-translate-y-1 hover:border-slate-300 hover:shadow-lg dark:border-white/10 dark:bg-navy-surface dark:hover:border-teal/40"
                   >
                     <div className="w-20 shrink-0 overflow-hidden rounded-xl">
