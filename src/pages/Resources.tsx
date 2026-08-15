@@ -1,12 +1,13 @@
 import { useMemo } from "react";
-import { useSearchParams } from "react-router";
+import { Link, useSearchParams } from "react-router";
 import { cn } from "@/lib/utils";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Reveal } from "@/components/Reveal";
 import { ResourceCard } from "@/components/ResourceCard";
-import { resources } from "@/data/catalog";
-import { FileText, Layers } from "lucide-react";
+import { ArticleCard } from "@/components/ArticleCard";
+import { articles, resources } from "@/data/catalog";
+import { ArrowRight, FileText, Layers } from "lucide-react";
 
 const TABS = [
   { id: "all", label: "All" },
@@ -36,6 +37,15 @@ export default function Resources() {
     );
   }, [tab]);
 
+  /** Sparse categories (1–2 resources) get a curated editorial layout. */
+  const sparse = results.length > 0 && results.length < 3 && tab !== "all" && tab !== "free";
+
+  const relatedArticles = useMemo(() => {
+    const matched = articles.filter((a) => a.category === tab);
+    const pool = matched.length >= 3 ? matched : articles;
+    return pool.slice(0, 3);
+  }, [tab]);
+
   const setTab = (id: TabId) => {
     setSearchParams(id === "all" ? {} : { tab: id }, { replace: true });
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -61,7 +71,7 @@ export default function Resources() {
                 A library built for research minds.
               </h1>
               <p className="font-bangla mt-4 max-w-xl text-lg leading-relaxed text-ink-soft dark:text-slate-300">
-                গাইড, টেমপ্লেট, চেকলিস্ট ও ম্যাপ — গবেষণা থেকে স্কলারশিপ পর্যন্ত সবকিছু এক জায়গায়।
+                গবেষণা, স্কলারশিপ, একাডেমিক রাইটিং ও উচ্চশিক্ষার জন্য নির্বাচিত গাইড, টেমপ্লেট ও ডিজিটাল রিসোর্স।
               </p>
             </Reveal>
           </div>
@@ -106,15 +116,75 @@ export default function Resources() {
             </p>
           </div>
 
-          <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {results.map((r, i) => (
-              <Reveal key={r.slug} delay={Math.min(i * 0.05, 0.3)}>
-                <ResourceCard resource={r} />
-              </Reveal>
-            ))}
-          </div>
+          {sparse ? (
+            /* Curated two-column composition for categories with 1–2 resources */
+            <div className="mt-8 grid gap-10 lg:grid-cols-12">
+              <div className="lg:col-span-7">
+                <div className="grid gap-6 sm:grid-cols-2">
+                  {results.map((r, i) => (
+                    <Reveal key={r.slug} delay={Math.min(i * 0.05, 0.3)}>
+                      <ResourceCard resource={r} className="h-full" />
+                    </Reveal>
+                  ))}
+                </div>
+                <Reveal delay={0.15}>
+                  <div className="mt-6 rounded-3xl border border-dashed border-hairline bg-white/60 p-6 dark:border-white/15 dark:bg-white/[0.03]">
+                    <p className="font-serif text-lg text-navy dark:text-slate-100">
+                      More resources are being curated
+                    </p>
+                    <p className="font-bangla mt-1 text-sm leading-relaxed text-ink-soft dark:text-slate-400">
+                      এই ক্যাটাগরিতে নতুন প্রকাশনা আসছে — এর মধ্যে ফ্রি লাইব্রেরি বা
+                      অন্য ক্যাটাগরি দেখে নিন।
+                    </p>
+                    <div className="mt-4 flex flex-wrap gap-3">
+                      <Link
+                        to="/resources?tab=free"
+                        className="inline-flex h-10 items-center gap-1.5 rounded-full border border-hairline bg-white px-5 text-[13px] font-semibold text-navy transition-all hover:border-slate-300 dark:border-white/15 dark:bg-white/5 dark:text-slate-100"
+                      >
+                        Browse the Free Library
+                      </Link>
+                      <Link
+                        to="/insights"
+                        className="inline-flex h-10 items-center gap-1.5 rounded-full bg-navy px-5 text-[13px] font-semibold text-white transition-all hover:bg-navy/90 dark:bg-teal dark:text-navy-deep"
+                      >
+                        Read related insights
+                        <ArrowRight className="size-3.5" />
+                      </Link>
+                    </div>
+                  </div>
+                </Reveal>
+              </div>
 
-          {results.length === 0 && (
+              {/* Related insights sidebar */}
+              <div className="lg:col-span-5">
+                <Reveal delay={0.1}>
+                  <div className="flex items-center gap-3">
+                    <span className="h-px w-8 bg-gold" />
+                    <p className="text-xs font-bold tracking-[0.2em] text-teal uppercase dark:text-teal-bright">
+                      Related Insights
+                    </p>
+                  </div>
+                  <div className="mt-5 flex flex-col gap-5">
+                    {relatedArticles.map((a, i) => (
+                      <Reveal key={a.slug} delay={0.06 * i}>
+                        <ArticleCard article={a} />
+                      </Reveal>
+                    ))}
+                  </div>
+                </Reveal>
+              </div>
+            </div>
+          ) : (
+            <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {results.map((r, i) => (
+                <Reveal key={r.slug} delay={Math.min(i * 0.05, 0.3)}>
+                  <ResourceCard resource={r} className="h-full" />
+                </Reveal>
+              ))}
+            </div>
+          )}
+
+          {!sparse && results.length === 0 && (
             <div className="mt-16 flex flex-col items-center gap-4 rounded-3xl border border-dashed border-hairline py-20 text-center dark:border-white/15">
               <FileText className="size-8 text-ink-soft/50" />
               <p className="font-serif text-xl text-navy dark:text-slate-100">

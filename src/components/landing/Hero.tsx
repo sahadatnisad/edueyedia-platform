@@ -1,28 +1,17 @@
 import { Link } from "react-router";
 import { motion } from "framer-motion";
-import { ArrowRight, BadgeCheck, BookOpen, FileText, Star } from "lucide-react";
+import { ArrowRight, BadgeCheck, BookOpen, FileText } from "lucide-react";
 import { Reveal } from "@/components/Reveal";
-import { resources } from "@/data/catalog";
 
 const TRUST = [
   "বাংলায় তৈরি",
   "Research-focused",
   "Practical Resources",
+  "Editorially Reviewed",
   "Secure Digital Delivery",
 ];
 
-const REVIEWERS = [
-  { initials: "NJ", name: "Nusrat J." },
-  { initials: "IZ", name: "Israt Z." },
-  { initials: "MC", name: "Mehjabin C." },
-  { initials: "AH", name: "Arif H." },
-  { initials: "TA", name: "Tanvir A." },
-];
-
 export function Hero() {
-  const totalReviews = resources.reduce((sum, r) => sum + r.reviewCount, 0);
-  const avgRating =
-    resources.reduce((sum, r) => sum + r.rating * r.reviewCount, 0) / totalReviews;
 
   return (
     <section className="relative overflow-hidden bg-ivory pb-16 pt-36 sm:pb-20 sm:pt-40 dark:bg-navy-deep">
@@ -66,8 +55,9 @@ export function Hero() {
 
           <Reveal delay={0.22}>
             <p className="font-bangla mt-5 max-w-xl text-base leading-relaxed text-ink-soft sm:text-lg dark:text-slate-300">
-              গবেষণা, স্কলারশিপ ও উচ্চশিক্ষার জন্য প্রয়োজনীয় গাইড,
-              বিশ্লেষণ, PDF ও ডিজিটাল রিসোর্স — সহজ বাংলায়।
+              গবেষণা, স্কলারশিপ ও উচ্চশিক্ষা নিয়ে বাংলায় নির্ভরযোগ্য আর্টিকেল
+              পড়ুন — এবং প্রয়োজনীয় PDF, গাইড, টেমপ্লেট ও ডিজিটাল রিসোর্স সংগ্রহ
+              করুন।
             </p>
           </Reveal>
 
@@ -81,59 +71,26 @@ export function Hero() {
                 <ArrowRight className="size-4 transition-transform duration-300 group-hover:translate-x-1" />
               </Link>
               <Link
-                to="/learn"
+                to="/insights"
                 className="inline-flex h-12 items-center gap-2 rounded-full border border-hairline bg-white px-7 text-sm font-semibold text-navy transition-all hover:-translate-y-0.5 hover:border-slate-300 dark:border-white/15 dark:bg-white/5 dark:text-slate-100 dark:hover:border-teal/40"
               >
                 <BookOpen className="size-4 text-teal" />
-                Start Learning
+                Read Insights
               </Link>
             </div>
           </Reveal>
 
           <Reveal delay={0.38}>
-            <div className="mt-10 flex flex-col gap-5">
-              {/* rating strip */}
-              <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-                <div className="flex -space-x-2.5">
-                  {REVIEWERS.map((r) => (
-                    <span
-                      key={r.name}
-                      title={r.name}
-                      className="flex size-9 items-center justify-center rounded-full border-2 border-ivory bg-navy text-[11px] font-bold text-white dark:border-navy-deep dark:bg-teal dark:text-navy-deep"
-                    >
-                      {r.initials}
-                    </span>
-                  ))}
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="flex items-center gap-0.5">
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <Star
-                        key={i}
-                        className="size-3.5 fill-gold text-gold"
-                      />
-                    ))}
-                  </span>
-                  <p className="text-xs text-ink-soft dark:text-slate-400">
-                    <span className="font-semibold text-navy dark:text-slate-200">
-                      {avgRating.toFixed(1)}
-                    </span>{" "}
-                    from {totalReviews.toLocaleString()}+ reader reviews
-                  </p>
-                </div>
-              </div>
-              {/* trust chips */}
-              <div className="flex flex-wrap gap-2">
-                {TRUST.map((t) => (
-                  <span
-                    key={t}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-hairline bg-white/70 px-3 py-1.5 text-xs font-medium text-navy dark:border-white/10 dark:bg-white/5 dark:text-slate-200"
-                  >
-                    <BadgeCheck className="size-3.5 text-teal" />
-                    {t}
-                  </span>
-                ))}
-              </div>
+            <div className="mt-10 flex flex-wrap gap-2">
+              {TRUST.map((t) => (
+                <span
+                  key={t}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-hairline bg-white/70 px-3 py-1.5 text-xs font-medium text-navy dark:border-white/10 dark:bg-white/5 dark:text-slate-200"
+                >
+                  <BadgeCheck className="size-3.5 text-teal" />
+                  {t}
+                </span>
+              ))}
             </div>
           </Reveal>
         </div>

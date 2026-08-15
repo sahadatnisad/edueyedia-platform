@@ -25,11 +25,6 @@ export function ResourceCard({ resource, className }: ResourceCardProps) {
     >
       <div className="relative">
         <BookCover resource={resource} className="transition-transform duration-500 group-hover:-translate-y-1.5" />
-        {resource.bestseller && (
-          <span className="absolute -top-2 -right-2 z-10 rounded-full bg-gold px-3 py-1 text-[10px] font-bold tracking-[0.12em] text-navy uppercase shadow-md">
-            Bestseller
-          </span>
-        )}
       </div>
 
       <div className="flex flex-1 flex-col gap-2.5 px-2 pt-4 pb-2">

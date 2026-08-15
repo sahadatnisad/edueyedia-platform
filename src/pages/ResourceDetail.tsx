@@ -31,8 +31,8 @@ import {
   FileText,
   Languages,
   Lock,
+  ShieldCheck,
   ShoppingBag,
-  Star,
   Users,
 } from "lucide-react";
 
@@ -183,32 +183,20 @@ export default function ResourceDetail() {
                   )}
                 </div>
 
-                <h1 className="font-serif mt-4 text-3xl leading-tight text-navy text-balance sm:text-[40px] dark:text-slate-50">
-                  {resource.title}
+                <h1 className="font-bangla mt-4 text-3xl leading-tight font-bold text-navy text-balance sm:text-[40px] dark:text-slate-50">
+                  {resource.titleBn ?? resource.title}
                 </h1>
                 {resource.titleBn && (
-                  <p className="font-bangla mt-2 text-lg text-ink-soft dark:text-slate-300">
-                    {resource.titleBn}
+                  <p className="font-serif mt-2 text-xl leading-snug text-ink-soft dark:text-slate-300">
+                    {resource.title}
                   </p>
                 )}
 
-                <div className="mt-4 flex items-center gap-3">
-                  <span className="flex items-center gap-1">
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <Star
-                        key={i}
-                        className={cn(
-                          "size-4",
-                          i < Math.round(resource.rating)
-                            ? "fill-gold text-gold"
-                            : "text-hairline dark:text-white/20",
-                        )}
-                      />
-                    ))}
-                  </span>
-                  <span className="text-sm text-ink-soft dark:text-slate-400">
-                    {resource.rating.toFixed(1)} · {resource.reviewCount} reviews
-                  </span>
+                <div className="mt-4 flex items-center gap-2 text-xs text-ink-soft dark:text-slate-400">
+                  <BadgeCheck className="size-3.5 text-teal" />
+                  Editorially reviewed
+                  <span className="h-0.5 w-0.5 rounded-full bg-current opacity-50" />
+                  Updated {resource.updated.replace("Updated ", "")}
                 </div>
 
                 <p className="mt-5 text-base leading-relaxed text-ink-soft dark:text-slate-300">
@@ -283,7 +271,7 @@ export default function ResourceDetail() {
                         disabled={claiming}
                       >
                         <Download className="size-4" />
-                        {claiming ? "Adding…" : "Add to library — Free"}
+                        {claiming ? "Adding…" : "Get This Resource — Free"}
                       </Button>
                     ) : (
                       <Button
@@ -292,14 +280,33 @@ export default function ResourceDetail() {
                         onClick={handleBuy}
                       >
                         <ShoppingBag className="size-4" />
-                        Buy now — ৳{resource.price}
+                        Get This Resource
                       </Button>
                     )}
-                    <p className="flex items-center justify-center gap-1.5 text-[11px] text-ink-soft dark:text-slate-400">
-                      <Lock className="size-3" />
-                      Instant digital delivery · Secure checkout · Lifetime access
-                    </p>
+                    <Button
+                      variant="outline"
+                      size="lg"
+                      className="w-full rounded-full"
+                      onClick={() => setPreviewOpen(true)}
+                    >
+                      <Eye className="size-4" /> Preview sample pages
+                    </Button>
+                    <ul className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 pt-1 text-[11px] text-ink-soft dark:text-slate-400">
+                      <li className="inline-flex items-center gap-1.5">
+                        <ShieldCheck className="size-3.5 text-teal" /> Secure Payment
+                      </li>
+                      <li className="inline-flex items-center gap-1.5">
+                        <Download className="size-3.5 text-teal" /> Instant Digital Delivery
+                      </li>
+                      <li className="inline-flex items-center gap-1.5">
+                        <Lock className="size-3.5 text-teal" /> Private Download
+                      </li>
+                    </ul>
                   </div>
+
+                  <p className="font-bangla mt-4 rounded-2xl border border-gold/30 bg-gold/10 px-4 py-3 text-center text-[13px] leading-relaxed text-[#7c5c16] dark:border-gold/30 dark:bg-gold/10 dark:text-gold">
+                    এটি একটি ডিজিটাল পণ্য। কোনো ফিজিক্যাল কপি ডেলিভারি করা হবে না।
+                  </p>
 
                   <div className="mt-5 border-t border-hairline pt-4 dark:border-white/10">
                     <p className="text-[10px] font-bold tracking-[0.18em] text-ink-soft uppercase dark:text-slate-400">
@@ -447,30 +454,13 @@ export default function ResourceDetail() {
 
               {section === "reviews" && (
                 <Reveal key="reviews">
-                  <div className="flex flex-col gap-4">
-                    {resource.reviews.length === 0 && (
-                      <p className="text-sm text-ink-soft dark:text-slate-400">
-                        Be the first to review this resource after you read it.
-                      </p>
-                    )}
-                    {resource.reviews.map((r) => (
-                      <figure key={r.name} className="rounded-2xl border border-hairline bg-white p-5 dark:border-white/10 dark:bg-navy-surface">
-                        <div className="flex items-center gap-1">
-                          {Array.from({ length: 5 }).map((_, i) => (
-                            <Star key={i} className={cn("size-3.5", i < r.rating ? "fill-gold text-gold" : "text-hairline dark:text-white/20")} />
-                          ))}
-                        </div>
-                        <blockquote className="mt-3 text-sm leading-relaxed text-navy dark:text-slate-200">
-                          “{r.text}”
-                        </blockquote>
-                        <figcaption className="mt-4 flex items-center gap-2 text-xs text-ink-soft dark:text-slate-400">
-                          <span className="font-semibold text-navy dark:text-slate-100">{r.name}</span>
-                          · {r.role}
-                          <BadgeCheck className="ml-1 size-3.5 text-teal" />
-                          Verified
-                        </figcaption>
-                      </figure>
-                    ))}
+                  <div className="rounded-2xl border border-dashed border-hairline px-6 py-10 text-center dark:border-white/15">
+                    <p className="font-serif text-xl text-navy dark:text-slate-100">
+                      No reviews yet
+                    </p>
+                    <p className="font-bangla mt-2 text-sm leading-relaxed text-ink-soft dark:text-slate-400">
+                      কিনে পড়ার পর আপনার মতামত জানান — সব রিভিউ শুধু যাচাইকৃত ক্রেতাদের কাছ থেকে আসে।
+                    </p>
                   </div>
                 </Reveal>
               )}
@@ -534,6 +524,40 @@ export default function ResourceDetail() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Sticky purchase bar — mobile only */}
+      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-hairline bg-white/95 px-4 py-3 backdrop-blur md:hidden dark:border-white/10 dark:bg-navy-deep/95">
+        <div className="flex items-center gap-3">
+          <div className="min-w-0">
+            <p className="text-[10px] font-bold tracking-[0.16em] text-ink-soft uppercase dark:text-slate-400">
+              {resource.tag}
+            </p>
+            <p className="font-serif truncate text-lg font-semibold text-navy dark:text-slate-100">
+              {free ? "Free" : `৳${resource.price}`}
+            </p>
+          </div>
+          <Button
+            className="ml-auto h-11 shrink-0 rounded-full px-6"
+            onClick={owned ? () => navigate("/dashboard") : free ? handleClaim : handleBuy}
+            disabled={claiming}
+          >
+            {owned ? (
+              <>
+                <Check className="size-4" /> In library
+              </>
+            ) : free ? (
+              <>
+                <Download className="size-4" />
+                {claiming ? "Adding…" : "Get Free"}
+              </>
+            ) : (
+              <>
+                <ShoppingBag className="size-4" /> Get This Resource
+              </>
+            )}
+          </Button>
+        </div>
+      </div>
 
       <Footer />
     </div>

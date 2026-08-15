@@ -15,13 +15,28 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Reveal } from "@/components/Reveal";
 import { SectionHeading } from "@/components/SectionHeading";
-import { resources } from "@/data/catalog";
 
-const STATS = [
-  { value: "22+", label: "Premium resources", bn: "প্রিমিয়াম রিসোর্স" },
-  { value: "5", label: "Curated collections", bn: "কিউরেটেড কালেকশন" },
-  { value: "100%", label: "Bangla-first writing", bn: "বাংলায় তৈরি" },
-  { value: "0", label: "Ad-driven noise", bn: "বিজ্ঞাপনমুক্ত" },
+const PRINCIPLE_STRIP = [
+  {
+    icon: Microscope,
+    title: "Evidence-led",
+    bn: "প্রমাণের ভিত্তিতে",
+  },
+  {
+    icon: BookOpen,
+    title: "Bangla-first",
+    bn: "প্রথমে বাংলা",
+  },
+  {
+    icon: FileText,
+    title: "Practical",
+    bn: "ব্যবহারযোগ্য",
+  },
+  {
+    icon: BadgeCheck,
+    title: "Independent",
+    bn: "স্বাধীনভাবে",
+  },
 ];
 
 const PUBLISH = [
@@ -51,11 +66,11 @@ const PUBLISH = [
   },
   {
     icon: BookOpen,
-    title: "The Learning Library",
-    bn: "লার্নিং লাইব্রেরি",
+    title: "The Insights Journal",
+    bn: "ইনসাইটস জার্নাল",
     copy: "Long-form guides and analysis on research methods, academic writing and scholarship strategy — in Bangla and English.",
-    to: "/learn",
-    cta: "Start learning",
+    to: "/insights",
+    cta: "Read insights",
   },
 ];
 
@@ -141,7 +156,6 @@ const STORY = [
 ];
 
 export default function About() {
-  const totalReviews = resources.reduce((sum, r) => sum + r.reviewCount, 0);
 
   return (
     <div className="min-h-screen bg-ivory dark:bg-navy-deep">
@@ -185,11 +199,14 @@ export default function About() {
               </Reveal>
               <Reveal delay={0.22}>
                 <p className="mt-5 max-w-xl text-base leading-relaxed text-ink-soft sm:text-lg dark:text-slate-300">
-                  Edueyedia is a research-focused digital publishing platform for
-                  Bangla-speaking learners, researchers and scholarship seekers.
-                  We turn scattered information into curated knowledge — guides,
-                  templates and long-form analysis, written in Bangla and grounded
-                  in evidence.
+                  বাংলাভাষী শিক্ষার্থী, গবেষক ও উচ্চশিক্ষা প্রত্যাশীদের জন্য
+                  নির্ভরযোগ্য, পরিষ্কার ও ব্যবহারযোগ্য গবেষণা ও শিক্ষাভিত্তিক
+                  জ্ঞান সহজলভ্য করা।
+                </p>
+                <p className="mt-3 max-w-xl text-base leading-relaxed text-ink-soft sm:text-lg dark:text-slate-300">
+                  Edueyedia is a research-focused digital publishing platform —
+                  guides, templates and long-form analysis, written in Bangla and
+                  grounded in evidence.
                 </p>
               </Reveal>
               <Reveal delay={0.3}>
@@ -202,11 +219,11 @@ export default function About() {
                     <ArrowRight className="size-4 transition-transform duration-300 group-hover:translate-x-1" />
                   </Link>
                   <Link
-                    to="/learn"
+                    to="/insights"
                     className="inline-flex h-12 items-center gap-2 rounded-full border border-hairline bg-white px-7 text-sm font-semibold text-navy transition-all hover:-translate-y-0.5 hover:border-slate-300 dark:border-white/15 dark:bg-white/5 dark:text-slate-100 dark:hover:border-teal/40"
                   >
                     <BookOpen className="size-4 text-teal" />
-                    Start Learning
+                    Read Insights
                   </Link>
                 </div>
               </Reveal>
@@ -265,6 +282,9 @@ export default function About() {
                         <li className="flex items-center gap-1.5">
                           <span className="h-1 w-1 rounded-full bg-teal" /> Independence
                         </li>
+                        <li className="flex items-center gap-1.5">
+                          <span className="h-1 w-1 rounded-full bg-teal" /> Practicality
+                        </li>
                       </ul>
                     </div>
                   </div>
@@ -300,16 +320,18 @@ export default function About() {
           </div>
         </section>
 
-        {/* ------------------------------ Stats ------------------------------ */}
+        {/* ------------------------------ Principles ------------------------------ */}
         <section className="bg-navy-deep py-14 sm:py-16">
           <div className="mx-auto max-w-6xl px-6">
             <div className="grid grid-cols-2 gap-8 lg:grid-cols-4">
-              {STATS.map((s, i) => (
-                <Reveal key={s.label} delay={0.06 * i}>
+              {PRINCIPLE_STRIP.map((p, i) => (
+                <Reveal key={p.title} delay={0.06 * i}>
                   <div className="flex flex-col gap-1">
-                    <p className="font-serif text-4xl text-gold sm:text-5xl">{s.value}</p>
-                    <p className="mt-1 text-sm font-semibold text-white">{s.label}</p>
-                    <p className="font-bangla text-xs text-slate-400">{s.bn}</p>
+                    <span className="flex size-10 items-center justify-center rounded-2xl bg-white/10 text-gold">
+                      <p.icon className="size-5" />
+                    </span>
+                    <p className="mt-3 text-sm font-semibold text-white">{p.title}</p>
+                    <p className="font-bangla text-xs text-slate-400">{p.bn}</p>
                   </div>
                 </Reveal>
               ))}

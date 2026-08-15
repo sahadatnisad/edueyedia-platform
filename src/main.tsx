@@ -24,9 +24,10 @@ const AuthPage = lazy(() => import("./pages/Auth.tsx"));
 const Dashboard = lazy(() => import("./pages/Dashboard.tsx"));
 const Resources = lazy(() => import("./pages/Resources.tsx"));
 const ResourceDetail = lazy(() => import("./pages/ResourceDetail.tsx"));
-const Learn = lazy(() => import("./pages/Learn.tsx"));
+const Insights = lazy(() => import("./pages/Insights.tsx"));
 const ArticlePage = lazy(() => import("./pages/ArticlePage.tsx"));
 const About = lazy(() => import("./pages/About.tsx"));
+const Checkout = lazy(() => import("./pages/Checkout.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 
 // Simple loading fallback for route transitions
@@ -96,10 +97,10 @@ class RootErrorBoundary extends React.Component<
 
 const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string);
 
-/** Redirect legacy /insights/:slug article URLs to /learn/:slug. */
-function InsightsSlugRedirect() {
+/** Redirect legacy /learn/:slug article URLs to /insights/:slug. */
+function LearnSlugRedirect() {
   const { slug } = useParams<{ slug: string }>();
-  return <Navigate to={`/learn/${slug ?? ""}`} replace />;
+  return <Navigate to={`/insights/${slug ?? ""}`} replace />;
 }
 
 function RouteSyncer() {
@@ -158,15 +159,23 @@ createRoot(document.getElementById("root")!).render(
                   />
                   <Route path="/resources" element={<Resources />} />
                   <Route path="/resources/:slug" element={<ResourceDetail />} />
-                  <Route path="/learn" element={<Learn />} />
-                  <Route path="/learn/:slug" element={<ArticlePage />} />
+                  <Route path="/insights" element={<Insights />} />
+                  <Route path="/insights/:slug" element={<ArticlePage />} />
                   <Route path="/about" element={<About />} />
-                  {/* Legacy /insights URLs redirect to /learn */}
-                  <Route path="/insights" element={<Navigate to="/learn" replace />} />
                   <Route
-                    path="/insights/:slug"
+                    path="/checkout"
                     element={
-                      <InsightsSlugRedirect />
+                      <RequireAuth>
+                        <Checkout />
+                      </RequireAuth>
+                    }
+                  />
+                  {/* Legacy /learn URLs redirect to /insights */}
+                  <Route path="/learn" element={<Navigate to="/insights" replace />} />
+                  <Route
+                    path="/learn/:slug"
+                    element={
+                      <LearnSlugRedirect />
                     }
                   />
                   <Route path="*" element={<NotFound />} />

@@ -20,10 +20,10 @@ export function PopularResources() {
       <div className="mx-auto max-w-6xl px-6">
         <div className="flex flex-col gap-8 md:flex-row md:items-end md:justify-between">
           <SectionHeading
-            eyebrow="Most Read This Month"
+            eyebrow="Featured Publications"
             title="Popular resources"
             titleBn="জনপ্রিয় রিসোর্সসমূহ"
-            description="The guides students and researchers open most — chosen by thousands of readers, not by us."
+            description="The guides our editors recommend starting with — research, scholarships and academic writing, in one shelf."
           />
           <Reveal delay={0.15}>
             <Link
@@ -60,7 +60,7 @@ export function PopularResources() {
                 More than a download — a research library.
               </p>
               <p className="font-bangla mt-1 text-sm text-ink-soft dark:text-slate-400">
-                ২২টি রিসোর্স, গাইড ও টেমপ্লেট — গবেষণা থেকে স্কলারশিপ পর্যন্ত।
+                গাইড, টেমপ্লেট ও টুলস — গবেষণা থেকে স্কলারশিপ পর্যন্ত সব এক জায়গায়।
               </p>
             </div>
             <Link

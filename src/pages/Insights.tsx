@@ -11,11 +11,13 @@ const FILTERS = [
   { id: "research", label: "Research" },
   { id: "scholarships", label: "Scholarships" },
   { id: "academic-writing", label: "Academic Writing" },
+  { id: "study-abroad", label: "Study Abroad" },
+  { id: "career", label: "Career" },
 ] as const;
 
 type FilterId = (typeof FILTERS)[number]["id"];
 
-export default function Learn() {
+export default function Insights() {
   const [filter, setFilter] = useState<FilterId>("all");
 
   const featured = articles.find((a) => a.featured) ?? articles[0];
@@ -39,14 +41,14 @@ export default function Learn() {
               <div className="flex items-center gap-3">
                 <span className="h-px w-10 bg-gold" />
                 <p className="text-xs font-bold tracking-[0.24em] text-teal uppercase dark:text-teal-bright">
-                  Learn
+                  Edueyedia Insights
                 </p>
               </div>
               <h1 className="font-serif mt-5 max-w-2xl text-4xl leading-[1.1] text-navy text-balance sm:text-6xl dark:text-slate-50">
-                Learn with Edueyedia
+                Ideas, Guides & Research Insights
               </h1>
               <p className="font-bangla mt-4 max-w-xl text-lg leading-relaxed text-ink-soft dark:text-slate-300">
-                জ্ঞান, গাইড ও বিশ্লেষণ — research methods, scholarship strategy and academic writing, in Bangla and English.
+                গবেষণা, শিক্ষা ও সুযোগ নিয়ে নির্বাচিত লেখা — research methods, scholarship strategy and academic writing.
               </p>
             </Reveal>
           </div>

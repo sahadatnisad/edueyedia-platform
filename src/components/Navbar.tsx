@@ -26,7 +26,7 @@ const NAV_LINKS = [
   { label: "Scholarships", to: "/resources?tab=scholarships" },
   { label: "Study Abroad", to: "/resources?tab=study-abroad" },
   { label: "Resources", to: "/resources" },
-  { label: "Learn", to: "/learn" },
+  { label: "Insights", to: "/insights" },
   { label: "About", to: "/about" },
 ];
 

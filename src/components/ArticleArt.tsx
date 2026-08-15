@@ -87,7 +87,7 @@ export function ArticleArt({
           darkTone ? "text-navy/70" : "text-white/75",
         )}
       >
-        <span>Edueyedia Learn</span>
+        <span>Edueyedia Insights</span>
         <span>VOL. {article.cover.glyph ? "01" : "02"} — 2026</span>
       </div>
     </div>

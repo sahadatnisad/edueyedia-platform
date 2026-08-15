@@ -11,7 +11,6 @@ import { Collections } from "@/components/landing/Collections";
 import { FreeLibrary } from "@/components/landing/FreeLibrary";
 import { LatestInsights } from "@/components/landing/LatestInsights";
 import { WhyEdueyedia } from "@/components/landing/WhyEdueyedia";
-import { Testimonials } from "@/components/landing/Testimonials";
 import { Newsletter } from "@/components/landing/Newsletter";
 import { FinalCTA } from "@/components/landing/FinalCTA";
 
@@ -31,7 +30,6 @@ export default function Landing() {
         <FreeLibrary />
         <LatestInsights />
         <WhyEdueyedia />
-        <Testimonials />
         <Newsletter />
         <FinalCTA />
       </main>

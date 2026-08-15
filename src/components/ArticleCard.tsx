@@ -15,7 +15,7 @@ export function ArticleCard({
 }) {
   return (
     <Link
-      to={`/learn/${article.slug}`}
+      to={`/insights/${article.slug}`}
       className={cn(
         "group flex flex-col overflow-hidden rounded-3xl border border-hairline bg-white transition-all duration-300",
         "hover:-translate-y-1 hover:border-slate-300 hover:shadow-[0_24px_48px_-24px_rgba(15,34,56,0.25)]",

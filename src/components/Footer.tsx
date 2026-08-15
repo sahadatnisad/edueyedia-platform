@@ -8,16 +8,16 @@ const COLUMNS: { title: string; links: { label: string; to: string }[] }[] = [
       { label: "Research", to: "/resources?tab=research" },
       { label: "Scholarships", to: "/resources?tab=scholarships" },
       { label: "Study Abroad", to: "/resources?tab=study-abroad" },
-      { label: "Learn", to: "/learn" },
+      { label: "Academic Writing", to: "/resources?tab=academic-writing" },
     ],
   },
   {
     title: "Resources",
     links: [
-      { label: "Premium Resources", to: "/resources" },
+      { label: "Resource Library", to: "/resources" },
       { label: "Free Library", to: "/resources?tab=free" },
-      { label: "Templates", to: "/resources?tab=free" },
-      { label: "Curated Collections", to: "/resources" },
+      { label: "Insights", to: "/insights" },
+      { label: "Collections", to: "/resources" },
     ],
   },
   {

@@ -39,6 +39,25 @@ const schema = defineSchema(
       kind: v.union(v.literal("paid"), v.literal("free")),
       pricePaid: v.number(), // taka (0 for free resources)
       purchasedAt: v.number(),
+      orderId: v.optional(v.id("orders")), // for paid items — set only after verified payment
+    }).index("by_user", ["userId"]),
+
+    // Orders — created at checkout, unlocked only after server-side payment verification
+    orders: defineTable({
+      userId: v.id("users"),
+      resourceIds: v.array(v.string()),
+      contactName: v.string(),
+      contactEmail: v.string(),
+      contactMobile: v.optional(v.string()),
+      total: v.number(), // taka, computed server-side from the catalog
+      gateway: v.optional(v.string()),
+      status: v.union(
+        v.literal("pending"),
+        v.literal("paid"),
+        v.literal("cancelled"),
+        v.literal("failed"),
+      ),
+      createdAt: v.number(),
     }).index("by_user", ["userId"]),
 
     // Newsletter subscribers

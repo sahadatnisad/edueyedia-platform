@@ -34,10 +34,10 @@ export function FeaturedKnowledge() {
           />
           <Reveal delay={0.15}>
             <Link
-              to="/learn"
+              to="/insights"
               className="link-underline group inline-flex w-fit items-center gap-1.5 text-sm font-semibold text-navy dark:text-slate-100"
             >
-              Explore all guides
+              All insights
               <ArrowUpRight className="size-4 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
             </Link>
           </Reveal>
@@ -47,7 +47,7 @@ export function FeaturedKnowledge() {
           {/* Featured story */}
           <Reveal className="lg:col-span-7 lg:row-span-2">
             <Link
-              to={`/learn/${feature.slug}`}
+              to={`/insights/${feature.slug}`}
               className="group relative flex h-full min-h-[420px] flex-col justify-end overflow-hidden rounded-3xl border border-hairline bg-white dark:border-white/10 dark:bg-navy-surface"
             >
               <div className="absolute inset-0">

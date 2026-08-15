@@ -25,7 +25,7 @@ interface SearchEntry {
   id: string;
   title: string;
   subtitle: string;
-  group: "Articles" | "Resources" | "Scholarships" | "Topics";
+  group: "Insights" | "Resources" | "Scholarships" | "Topics";
   to: string;
   value: string;
 }
@@ -62,10 +62,10 @@ const TOPICS: { title: string; subtitle: string; to: string; value: string }[] =
     value: "free resources library templates checklists ফ্রি",
   },
   {
-    title: "Learn",
-    subtitle: "জ্ঞান, গাইড ও বিশ্লেষণ — articles & guides",
-    to: "/learn",
-    value: "learn articles guides blog জ্ঞান গাইড বিশ্লেষণ",
+    title: "Insights",
+    subtitle: "গবেষণা, শিক্ষা ও সুযোগ নিয়ে নির্বাচিত লেখা — articles & guides",
+    to: "/insights",
+    value: "insights articles guides blog গবেষণা শিক্ষা জ্ঞান গাইড বিশ্লেষণ",
   },
 ];
 
@@ -105,8 +105,8 @@ export function SearchCommand() {
       id: `a-${a.slug}`,
       title: a.title,
       subtitle: `${a.titleBn ?? ""} • ${a.categoryLabel} • ${a.readingTime}`,
-      group: "Articles",
-      to: `/learn/${a.slug}`,
+      group: "Insights",
+      to: `/insights/${a.slug}`,
       value: `${a.title} ${a.titleBn ?? ""} ${a.categoryLabel} ${a.excerpt} ${a.keywords.join(" ")}`,
     }));
 
@@ -131,7 +131,7 @@ export function SearchCommand() {
     return [...articleEntries, ...resourceEntries, ...scholarshipEntries, ...topicEntries];
   }, []);
 
-  const groups: SearchEntry["group"][] = ["Articles", "Resources", "Scholarships", "Topics"];
+  const groups: SearchEntry["group"][] = ["Insights", "Resources", "Scholarships", "Topics"];
 
   return (
     <CommandDialog
@@ -162,7 +162,7 @@ export function SearchCommand() {
                   }}
                   className="flex items-start gap-3 py-3"
                 >
-                  {item.group === "Articles" && (
+                  {item.group === "Insights" && (
                     <BookOpen className="mt-0.5 size-4 shrink-0 text-teal" />
                   )}
                   {item.group === "Resources" && (
