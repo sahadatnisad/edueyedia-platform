@@ -17,6 +17,7 @@ import {
   Download,
   Layers,
   LogOut,
+  ReceiptText,
   Sparkles,
   Trash2,
   Wallet,
@@ -25,6 +26,7 @@ import {
 export default function Dashboard() {
   const { user, signOut } = useAuth();
   const library = useQuery(api.library.myLibrary);
+  const orders = useQuery(api.library.myOrders);
   const removeFromLibrary = useMutation(api.library.removeFromLibrary);
   const navigate = useNavigate();
 
@@ -34,6 +36,18 @@ export default function Dashboard() {
         .map((row) => ({ row, resource: getResource(row.resourceId) }))
         .filter((x) => x.resource),
     [library],
+  );
+
+  const orderRows = useMemo(
+    () =>
+      (orders ?? []).map((order) => ({
+        order,
+        titles: order.resourceIds
+          .map((id) => getResource(id))
+          .filter(Boolean)
+          .map((r) => r!.titleBn ?? r!.title),
+      })),
+    [orders],
   );
 
   const paidCount = owned.filter((x) => x.row.kind === "paid").length;
@@ -236,6 +250,105 @@ export default function Dashboard() {
                     </div>
                   </Reveal>
                 ))}
+              </div>
+            )}
+          </div>
+
+          {/* order history */}
+          <div className="mt-16">
+            <Reveal>
+              <div className="flex items-end justify-between">
+                <div>
+                  <h2 className="font-serif text-3xl text-navy dark:text-slate-50">
+                    Order history
+                  </h2>
+                  <p className="font-bangla mt-1 text-sm text-ink-soft dark:text-slate-400">
+                    আপনার সম্পন্ন করা অর্ডারসমূহ
+                  </p>
+                </div>
+                <Link
+                  to="/resources"
+                  className="link-underline hidden items-center gap-1 text-sm font-semibold text-navy sm:inline-flex dark:text-slate-100"
+                >
+                  Browse more <ArrowRight className="size-4" />
+                </Link>
+              </div>
+            </Reveal>
+
+            {orders === undefined ? (
+              <div className="mt-6 flex flex-col gap-3">
+                {Array.from({ length: 2 }).map((_, i) => (
+                  <div key={i} className="h-20 animate-pulse rounded-3xl bg-muted" />
+                ))}
+              </div>
+            ) : orderRows.length === 0 ? (
+              <Reveal delay={0.1}>
+                <div className="mt-6 flex flex-col items-center gap-4 rounded-[2rem] border border-dashed border-hairline px-6 py-12 text-center dark:border-white/15">
+                  <div className="flex size-14 items-center justify-center rounded-2xl bg-gold/10">
+                    <ReceiptText className="size-7 text-[#8a681f] dark:text-gold" />
+                  </div>
+                  <div>
+                    <p className="font-serif text-xl text-navy dark:text-slate-100">
+                      No orders yet
+                    </p>
+                    <p className="font-bangla mt-1.5 max-w-sm text-sm text-ink-soft dark:text-slate-400">
+                      আপনার কেনা রিসোর্সের রসিদ এখানে দেখা যাবে।
+                    </p>
+                  </div>
+                  <Button asChild size="sm" className="rounded-full">
+                    <Link to="/resources">
+                      Explore the library <ArrowRight className="size-3.5" />
+                    </Link>
+                  </Button>
+                </div>
+              </Reveal>
+            ) : (
+              <div className="mt-6 flex flex-col">
+                {orderRows.map(({ order, titles }, i) => {
+                  const date = new Date(order.createdAt).toLocaleDateString(
+                    "en-GB",
+                    { day: "numeric", month: "short", year: "numeric" },
+                  );
+                  const paid = order.status === "paid";
+                  return (
+                    <Reveal key={order._id} delay={Math.min(i * 0.04, 0.2)}>
+                      <div className="flex flex-col gap-3 border-b border-hairline py-5 first:border-t sm:flex-row sm:items-center sm:justify-between dark:border-white/10">
+                        <div className="flex min-w-0 items-center gap-4">
+                          <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-navy text-gold dark:bg-teal dark:text-navy-deep">
+                            <ReceiptText className="size-5" />
+                          </span>
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="font-mono text-[11px] font-semibold tracking-wide text-navy dark:text-slate-100">
+                                #{order._id.slice(-8).toUpperCase()}
+                              </span>
+                              <span
+                                className={
+                                  paid
+                                    ? "rounded-full bg-teal/10 px-2 py-0.5 text-[9px] font-bold tracking-[0.14em] text-teal uppercase dark:text-teal-bright"
+                                    : "rounded-full bg-gold/15 px-2 py-0.5 text-[9px] font-bold tracking-[0.14em] text-[#8a681f] uppercase dark:text-gold"
+                                }
+                              >
+                                {order.status}
+                              </span>
+                            </div>
+                            <p className="mt-1 line-clamp-1 text-[13px] font-medium text-ink-soft dark:text-slate-400">
+                              {titles.join(" · ")}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex shrink-0 items-center justify-between gap-6 sm:justify-end">
+                          <p className="flex items-center gap-1.5 text-[11px] text-ink-soft dark:text-slate-400">
+                            <CalendarDays className="size-3" /> {date}
+                          </p>
+                          <p className="font-serif text-lg font-semibold text-navy dark:text-slate-100">
+                            ৳{order.total}
+                          </p>
+                        </div>
+                      </div>
+                    </Reveal>
+                  );
+                })}
               </div>
             )}
           </div>
