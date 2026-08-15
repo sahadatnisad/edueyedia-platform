@@ -1,0 +1,240 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@custom-variant dark (&:is(.dark *));
+
+/* ------------------------------------------------------------------ */
+/*  Edueyedia design tokens                                            */
+/*  Academic navy / modern teal / warm gold / soft ivory               */
+/* ------------------------------------------------------------------ */
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 8px);
+  --radius-md: calc(var(--radius) - 4px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 6px);
+  --radius-2xl: calc(var(--radius) + 14px);
+  --radius-3xl: calc(var(--radius) + 24px);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-navy: #152238;
+  --color-navy-deep: #0b1220;
+  --color-navy-ink: #0e1830;
+  --color-navy-surface: #111c2e;
+  --color-teal: #0f766e;
+  --color-teal-bright: #14b8a6;
+  --color-gold: #d6a84b;
+  --color-gold-soft: #f5e9cc;
+  --color-ivory: #fafaf7;
+  --color-cool: #f3f6f8;
+  --color-ink: #111827;
+  --color-ink-soft: #64748b;
+  --color-hairline: #e2e8f0;
+
+  --font-sans: "Inter", "Hind Siliguri", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "DM Serif Display", "Hind Siliguri", Georgia, serif;
+  --font-bangla: "Hind Siliguri", "Noto Sans Bengali", ui-sans-serif, sans-serif;
+
+  --animate-float: float 7s ease-in-out infinite;
+  --animate-float-slow: float 11s ease-in-out infinite;
+  --animate-fade-in: fade-in 0.9s ease both;
+
+  @keyframes float {
+    0%,
+    100% {
+      transform: translateY(0px);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
+  }
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+}
+
+/* Light — soft ivory editorial base */
+:root {
+  --radius: 1rem;
+  --background: #fafaf7;
+  --foreground: #111827;
+  --card: #ffffff;
+  --card-foreground: #111827;
+  --popover: #ffffff;
+  --popover-foreground: #111827;
+  --primary: #152238;
+  --primary-foreground: #ffffff;
+  --secondary: #f3f6f8;
+  --secondary-foreground: #152238;
+  --muted: #f1f4f6;
+  --muted-foreground: #64748b;
+  --accent: #e6efee;
+  --accent-foreground: #0f3f3a;
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: #e2e8f0;
+  --input: #e2e8f0;
+  --ring: #0f766e;
+}
+
+/* Dark — deep navy, premium and editorial */
+.dark {
+  --background: #0b1220;
+  --foreground: #f8fafc;
+  --card: #111c2e;
+  --card-foreground: #f8fafc;
+  --popover: #111c2e;
+  --popover-foreground: #f8fafc;
+  --primary: #14b8a6;
+  --primary-foreground: #06211f;
+  --secondary: #16233a;
+  --secondary-foreground: #f8fafc;
+  --muted: #131f33;
+  --muted-foreground: #a8b3c3;
+  --accent: #123f3c;
+  --accent-foreground: #d7f2ee;
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: rgb(255 255 255 / 0.09);
+  --input: rgb(255 255 255 / 0.12);
+  --ring: #14b8a6;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 96px;
+  }
+  body {
+    @apply bg-background font-sans text-ink antialiased;
+  }
+  .dark body {
+    @apply text-foreground;
+  }
+  ::selection {
+    background: color-mix(in srgb, var(--color-teal) 22%, transparent);
+    color: inherit;
+  }
+  button:not([disabled]),
+  [role="button"]:not([disabled]) {
+    cursor: pointer;
+  }
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: color-mix(in srgb, var(--color-ink-soft) 35%, transparent);
+    border-radius: 999px;
+    border: 3px solid transparent;
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: color-mix(in srgb, var(--color-ink-soft) 55%, transparent);
+    border: 3px solid transparent;
+    background-clip: content-box;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Academic textures & editorial utilities                            */
+/* ------------------------------------------------------------------ */
+
+@utility dot-grid {
+  background-image: radial-gradient(
+    color-mix(in srgb, currentColor 26%, transparent) 1px,
+    transparent 1.4px
+  );
+  background-size: 22px 22px;
+}
+
+@utility line-grid {
+  background-image:
+    linear-gradient(
+      to right,
+      color-mix(in srgb, currentColor 9%, transparent) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      to bottom,
+      color-mix(in srgb, currentColor 9%, transparent) 1px,
+      transparent 1px
+    );
+  background-size: 44px 44px;
+}
+
+@utility paper-noise {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+}
+
+@utility no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Animated underline links — editorial style */
+@utility link-underline {
+  position: relative;
+  background-image: linear-gradient(
+    currentColor,
+    currentColor
+  );
+  background-size: 0% 1px;
+  background-position: 0 100%;
+  background-repeat: no-repeat;
+  transition: background-size 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  padding-bottom: 2px;
+  &:hover,
+  &[data-active="true"] {
+    background-size: 100% 1px;
+  }
+}
+
+/* Faded oversized section numbers */
+@utility section-num {
+  @apply font-serif text-[clamp(6rem,18vw,13rem)] leading-none select-none;
+  color: color-mix(in srgb, currentColor 7%, transparent);
+}
+
+@utility editorial-crop {
+  @apply overflow-hidden;
+  & img {
+    @apply h-full w-full object-cover transition-transform duration-700 ease-out;
+  }
+  &:hover img {
+    transform: scale(1.035);
+  }
+}
+
+@utility hairline-b {
+  border-bottom: 1px solid var(--border);
+}
