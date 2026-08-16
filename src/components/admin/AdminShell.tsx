@@ -9,6 +9,7 @@ import {
   LayoutDashboard,
   LogOut,
   PenLine,
+  Settings,
   UserRound,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -20,6 +21,7 @@ const NAV = [
   { to: "/admin/blog", label: "Blog", icon: BookOpen, end: false },
   { to: "/admin/courses", label: "Courses", icon: GraduationCap, end: false },
   { to: "/admin/authors", label: "Authors", icon: UserRound, end: false },
+  { to: "/admin/settings", label: "Settings", icon: Settings, end: false },
 ];
 
 export function AdminShell() {

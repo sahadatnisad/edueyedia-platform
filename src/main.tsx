@@ -61,6 +61,7 @@ const AdminAuthorEditor = lazy(() =>
   import("./pages/admin/AdminAuthors.tsx").then((m) => ({ default: m.AdminAuthorEditor })),
 );
 const AdminOrders = lazy(() => import("./pages/admin/AdminOrders.tsx"));
+const AdminSettings = lazy(() => import("./pages/admin/AdminSettings.tsx"));
 
 // Simple loading fallback for route transitions
 function RouteLoading() {
@@ -267,6 +268,7 @@ createRoot(document.getElementById("root")!).render(
                     <Route path="authors/new" element={<AdminAuthorEditor />} />
                     <Route path="authors/:id" element={<AdminAuthorEditor />} />
                     <Route path="orders" element={<AdminOrders />} />
+                    <Route path="settings" element={<AdminSettings />} />
                   </Route>
                   <Route path="*" element={<NotFound />} />
                 </Routes>

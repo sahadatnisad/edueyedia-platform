@@ -164,6 +164,7 @@ interface FormState {
   excerpt: string;
   category: string;
   categoryLabel: string;
+  authorId: string;
   tags: string[];
   featured: boolean;
   readingTime: string;
@@ -181,6 +182,7 @@ const EMPTY: FormState = {
   excerpt: "",
   category: "guides",
   categoryLabel: "Guides",
+  authorId: "",
   tags: [],
   featured: false,
   readingTime: "5 min read",
@@ -201,6 +203,7 @@ export function AdminBlogEditor() {
     isNew ? ("skip" as never) : { id: id as never },
   );
   const save = useMutation(api.admin.upsertBlogPost);
+  const authors = useQuery(api.admin.listAuthorsAdmin);
   const [form, setForm] = useState<FormState>(EMPTY);
   const [saving, setSaving] = useState(false);
 
@@ -213,6 +216,7 @@ export function AdminBlogEditor() {
       excerpt: r.excerpt ?? "",
       category: r.category ?? "guides",
       categoryLabel: r.categoryLabel ?? "Guides",
+      authorId: r.authorId ?? "",
       tags: r.tags ?? [],
       featured: r.featured,
       readingTime: r.readingTime ?? "5 min read",
@@ -237,6 +241,7 @@ export function AdminBlogEditor() {
         excerpt: form.excerpt,
         category: form.category,
         categoryLabel: form.categoryLabel,
+        authorId: form.authorId || undefined,
         tags: form.tags,
         featured: form.featured,
         readingTime: form.readingTime,
@@ -287,6 +292,20 @@ export function AdminBlogEditor() {
                 set("categoryLabel", BLOG_CATEGORIES.find((c) => c.value === v)?.label ?? v);
               }}
               options={BLOG_CATEGORIES}
+            />
+          </Field>
+          <Field label="Author">
+            <SimpleSelect
+              value={form.authorId}
+              onChange={(v) => set("authorId", v)}
+              placeholder="Editorial desk (default)"
+              options={[
+                { value: "", label: "Editorial desk (default)" },
+                ...(authors ?? []).map((a) => ({
+                  value: a._id,
+                  label: `${a.name}${a.role ? ` — ${a.role}` : ""}`,
+                })),
+              ]}
             />
           </Field>
           <Field label="Display label">

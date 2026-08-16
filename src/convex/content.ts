@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { query } from "./_generated/server";
+import { query, QueryCtx } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
 import type {
   Article,
@@ -66,7 +66,35 @@ export function resourceToFrontend(row: ResourceRow): Resource {
   };
 }
 
-export function researchToArticle(row: ResearchRow): Article {
+/**
+ * Resolve the byline for an article: the real author from the authors
+ * table when one is assigned, otherwise the editorial desk fallback.
+ * Credentials are only ever shown if an admin actually entered them.
+ */
+async function resolveAuthor(
+  ctx: QueryCtx,
+  authorId: Id<"authors"> | undefined,
+  fallbackRole: string,
+): Promise<{ author: string; authorRole: string }> {
+  if (authorId === undefined) {
+    return { author: "Edueyedia Editorial", authorRole: fallbackRole };
+  }
+  const author = await ctx.db.get(authorId);
+  if (!author) {
+    return { author: "Edueyedia Editorial", authorRole: fallbackRole };
+  }
+  return { author: author.name, authorRole: author.role || fallbackRole };
+}
+
+export async function researchToArticle(
+  ctx: QueryCtx,
+  row: ResearchRow,
+): Promise<Article> {
+  const { author, authorRole } = await resolveAuthor(
+    ctx,
+    row.authorId,
+    "Research Desk",
+  );
   return {
     slug: row.slug,
     title: row.title,
@@ -74,8 +102,8 @@ export function researchToArticle(row: ResearchRow): Article {
     contentType: row.contentType,
     category: "research",
     categoryLabel: row.categoryLabel || "Research",
-    author: "Edueyedia Editorial",
-    authorRole: "Research Desk",
+    author,
+    authorRole,
     date: row.publishedAt
       ? new Date(row.publishedAt).toLocaleDateString("en-GB", {
           day: "numeric",
@@ -93,15 +121,23 @@ export function researchToArticle(row: ResearchRow): Article {
   };
 }
 
-export function blogToArticle(row: BlogRow): Article {
+export async function blogToArticle(
+  ctx: QueryCtx,
+  row: BlogRow,
+): Promise<Article> {
+  const { author, authorRole } = await resolveAuthor(
+    ctx,
+    row.authorId,
+    "Editorial Desk",
+  );
   return {
     slug: row.slug,
     title: row.title,
     titleBn: row.titleBn,
     category: row.category as Category,
     categoryLabel: row.categoryLabel || row.category,
-    author: "Edueyedia Editorial",
-    authorRole: "Editorial Desk",
+    author,
+    authorRole,
     date: row.publishedAt
       ? new Date(row.publishedAt).toLocaleDateString("en-GB", {
           day: "numeric",
@@ -222,8 +258,10 @@ export const allPublished = query({
     }
 
     const resources = resourceRows.map(resourceToFrontend);
-    const research = researchRows.map(researchToArticle);
-    const blog = blogRows.map(blogToArticle);
+    const research = await Promise.all(
+      researchRows.map((r) => researchToArticle(ctx, r)),
+    );
+    const blog = await Promise.all(blogRows.map((b) => blogToArticle(ctx, b)));
     const courses = courseRows.map((c) =>
       courseToFrontend(c, modulesByCourse.get(c._id) ?? [], lessonsByModule),
     );
@@ -263,13 +301,13 @@ export const articleBySlug = query({
       .withIndex("slug", (q) => q.eq("slug", slug))
       .first();
     if (research && research.status === "published") {
-      return researchToArticle(research);
+      return await researchToArticle(ctx, research);
     }
     const blog = await ctx.db
       .query("blogPosts")
       .withIndex("slug", (q) => q.eq("slug", slug))
       .first();
-    if (blog && blog.status === "published") return blogToArticle(blog);
+    if (blog && blog.status === "published") return await blogToArticle(ctx, blog);
     return null;
   },
 });
@@ -412,8 +450,12 @@ export const featuredHome = query({
 
     return {
       resources: featuredResources.map(resourceToFrontend).slice(0, 6),
-      research: featuredResearch.map(researchToArticle).slice(0, 4),
-      blog: featuredBlog.map(blogToArticle).slice(0, 4),
+      research: (
+        await Promise.all(featuredResearch.map((r) => researchToArticle(ctx, r)))
+      ).slice(0, 4),
+      blog: (
+        await Promise.all(featuredBlog.map((b) => blogToArticle(ctx, b)))
+      ).slice(0, 4),
       courses: courseModules.map(({ course, mods }) =>
         courseToFrontend(course, mods, lessonsByModule),
       ),
@@ -486,19 +528,25 @@ export const searchAll = query({
       .map(resourceToFrontend)
       .slice(0, 8);
 
-    const research = researchRows
-      .filter((r) =>
-        matches([r.title, r.titleBn, r.excerpt, r.slug, ...r.tags]),
+    const research = (
+      await Promise.all(
+        researchRows
+          .filter((r) =>
+            matches([r.title, r.titleBn, r.excerpt, r.slug, ...r.tags]),
+          )
+          .map((r) => researchToArticle(ctx, r)),
       )
-      .map(researchToArticle)
-      .slice(0, 6);
+    ).slice(0, 6);
 
-    const blog = blogRows
-      .filter((b) =>
-        matches([b.title, b.titleBn, b.excerpt, b.slug, ...b.tags]),
+    const blog = (
+      await Promise.all(
+        blogRows
+          .filter((b) =>
+            matches([b.title, b.titleBn, b.excerpt, b.slug, ...b.tags]),
+          )
+          .map((b) => blogToArticle(ctx, b)),
       )
-      .map(blogToArticle)
-      .slice(0, 6);
+    ).slice(0, 6);
 
     const courseIds = courseRows
       .filter((c) =>

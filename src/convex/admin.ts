@@ -194,6 +194,7 @@ const researchDataValidator = v.object({
   titleBn: v.optional(v.string()),
   excerpt: v.string(),
   contentType: researchTypeValidator,
+  authorId: v.optional(v.id("authors")),
   tags: v.array(v.string()),
   featured: v.boolean(),
   readingTime: v.string(),
@@ -214,6 +215,7 @@ const blogDataValidator = v.object({
   excerpt: v.string(),
   category: v.string(),
   categoryLabel: v.string(),
+  authorId: v.optional(v.id("authors")),
   tags: v.array(v.string()),
   featured: v.boolean(),
   readingTime: v.string(),
@@ -531,7 +533,6 @@ export const upsertResearchArticle = mutation({
         title,
         slug,
         categoryLabel: "Research",
-        authorId: undefined,
         editorId: undefined,
         publishedAt: data.status === "published" ? now : undefined,
         createdBy: actor._id,
@@ -644,7 +645,6 @@ export const upsertBlogPost = mutation({
         ...data,
         title,
         slug,
-        authorId: undefined,
         publishedAt: data.status === "published" ? now : undefined,
         createdBy: actor._id,
         createdAt: now,
@@ -1087,6 +1087,64 @@ export const updateOrderStatus = mutation({
       to: status,
     });
     return id;
+  },
+});
+
+/* --------------------------- site settings -------------------------- */
+
+/** All site settings (key + JSON value) for the Settings admin page. */
+export const listSiteSettings = query({
+  args: {},
+  handler: async (ctx) => {
+    await requireAdminQuery(ctx);
+    const rows = await ctx.db.query("siteSettings").collect();
+    return rows.map((r) => ({
+      key: r.key,
+      value: r.value,
+      updatedAt: r.updatedAt,
+    }));
+  },
+});
+
+/**
+ * Upsert a JSON site setting (e.g. scholarships, collections). The value is
+ * validated as JSON on the client; here we only guard size and type so a
+ * malformed write cannot corrupt the public site.
+ */
+export const updateSiteSetting = mutation({
+  args: {
+    key: v.string(),
+    value: v.any(),
+  },
+  handler: async (ctx, { key, value }) => {
+    const actor = await requireAdmin(ctx);
+    const trimmed = key.trim();
+    if (!trimmed) throw new Error("A setting key is required.");
+    if (!Array.isArray(value) && (typeof value !== "object" || value === null)) {
+      throw new Error("Settings must be saved as a JSON object or array.");
+    }
+    if (JSON.stringify(value).length > 250_000) {
+      throw new Error("This setting is too large to save.");
+    }
+
+    const existing = await ctx.db
+      .query("siteSettings")
+      .withIndex("by_key", (q) => q.eq("key", trimmed))
+      .first();
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        value,
+        updatedAt: Date.now(),
+      });
+    } else {
+      await ctx.db.insert("siteSettings", {
+        key: trimmed,
+        value,
+        updatedAt: Date.now(),
+      });
+    }
+    await log(ctx, actor._id, "settings.updated", "siteSettings", trimmed);
+    return trimmed;
   },
 });
 

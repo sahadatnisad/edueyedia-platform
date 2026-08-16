@@ -154,6 +154,7 @@ interface FormState {
   titleBn: string;
   excerpt: string;
   contentType: string;
+  authorId: string;
   tags: string[];
   featured: boolean;
   readingTime: string;
@@ -173,6 +174,7 @@ const EMPTY: FormState = {
   titleBn: "",
   excerpt: "",
   contentType: "research-guide",
+  authorId: "",
   tags: [],
   featured: false,
   readingTime: "5 min read",
@@ -196,6 +198,7 @@ export function AdminResearchEditor() {
     isNew ? ("skip" as never) : { id: id as never },
   );
   const save = useMutation(api.admin.upsertResearchArticle);
+  const authors = useQuery(api.admin.listAuthorsAdmin);
   const [form, setForm] = useState<FormState>(EMPTY);
   const [saving, setSaving] = useState(false);
 
@@ -207,6 +210,7 @@ export function AdminResearchEditor() {
       titleBn: r.titleBn ?? "",
       excerpt: r.excerpt ?? "",
       contentType: r.contentType ?? "research-guide",
+      authorId: r.authorId ?? "",
       tags: r.tags ?? [],
       featured: r.featured,
       readingTime: r.readingTime ?? "5 min read",
@@ -233,6 +237,7 @@ export function AdminResearchEditor() {
         titleBn: form.titleBn || undefined,
         excerpt: form.excerpt,
         contentType: form.contentType as ResearchContentType,
+        authorId: form.authorId || undefined,
         tags: form.tags,
         featured: form.featured,
         readingTime: form.readingTime,
@@ -281,6 +286,20 @@ export function AdminResearchEditor() {
               value={form.contentType}
               onChange={(v) => set("contentType", v)}
               options={RESEARCH_TOPICS.map((t) => ({ value: t.id, label: t.label }))}
+            />
+          </Field>
+          <Field label="Author">
+            <SimpleSelect
+              value={form.authorId}
+              onChange={(v) => set("authorId", v)}
+              placeholder="Editorial desk (default)"
+              options={[
+                { value: "", label: "Editorial desk (default)" },
+                ...(authors ?? []).map((a) => ({
+                  value: a._id,
+                  label: `${a.name}${a.role ? ` — ${a.role}` : ""}`,
+                })),
+              ]}
             />
           </Field>
           <Field label="Reading time">
