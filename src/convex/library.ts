@@ -167,23 +167,27 @@ export const createOrder = mutation({
 });
 
 /**
- * Complete a verified order — called only from the server-side payment
- * verification endpoint (see convex/http.ts). Marks the order paid and
- * unlocks its resources into the customer's library.
+ * Complete a verified order — the order only becomes "paid" here, and the
+ * gate is enforced in this mutation so no client can unlock content by
+ * calling it directly.
  *
- * A client calling this directly gains nothing beyond what the public
- * verification endpoint already offers: the real gate is the gateway check
- * below. Once SSLCOMMERZ_* credentials are configured, sandbox verifications
- * are rejected here, so nobody can unlock content by pretending to be the
- * payment gateway.
+ *   - gateway "sandbox": allowed only while no live gateway credentials are
+ *     configured (development / demo path).
+ *   - gateway "sslcommerz": requires a `proof` — a hash of server-only
+ *     secrets (store credentials) plus order/transaction ids. The proof is
+ *     produced by the payments.validateSslcommerzTransaction action, which
+ *     verifies the transaction against SSLCommerz's API. A client cannot
+ *     forge it, so only the server-side verification path (convex/http.ts)
+ *     can complete a paid order.
  */
 export const completeVerifiedOrder = mutation({
   args: {
     orderId: v.id("orders"),
     gateway: v.optional(v.string()),
     transactionId: v.optional(v.string()),
+    proof: v.optional(v.string()),
   },
-  handler: async (ctx, { orderId, gateway, transactionId }) => {
+  handler: async (ctx, { orderId, gateway, transactionId, proof }) => {
     const order = await ctx.db.get(orderId);
     if (!order || order.status !== "pending") {
       throw new Error("Order is not pending or not found.");
@@ -192,21 +196,38 @@ export const completeVerifiedOrder = mutation({
       throw new Error("Order total is invalid.");
     }
 
-    const gatewayConfigured = Boolean(
-      process.env.SSLCOMMERZ_STORE_ID && process.env.SSLCOMMERZ_STORE_PASSWORD,
-    );
-    if (gatewayConfigured && gateway !== "sandbox") {
-      throw new Error(
-        "Live gateway verification is not implemented yet — configure the gateway status check before going live.",
+    const storeId = process.env.SSLCOMMERZ_STORE_ID ?? "";
+    const storePassword = process.env.SSLCOMMERZ_STORE_PASSWORD ?? "";
+    const gatewayConfigured = Boolean(storeId && storePassword);
+
+    if (gateway === "sandbox") {
+      if (gatewayConfigured) {
+        throw new Error(
+          "Sandbox orders are disabled when a live gateway is configured.",
+        );
+      }
+    } else if (gateway === "sslcommerz") {
+      if (!gatewayConfigured) {
+        throw new Error("Live gateway is not configured.");
+      }
+      if (!transactionId || !proof) {
+        throw new Error("Payment verification is incomplete.");
+      }
+      const expected = await sha256Hex(
+        `${storeId}|${storePassword}|${orderId}|${transactionId}`,
       );
-    }
-    if (gatewayConfigured && gateway === "sandbox") {
-      throw new Error(
-        "Sandbox orders are disabled when a live gateway is configured.",
-      );
+      if (proof !== expected) {
+        throw new Error("Payment verification failed.");
+      }
+    } else {
+      throw new Error("Unknown payment gateway.");
     }
 
-    await ctx.db.patch(orderId, { status: "paid", gateway });
+    await ctx.db.patch(orderId, {
+      status: "paid",
+      gateway,
+      transactionId,
+    });
 
     const owned = await ctx.db
       .query("purchases")
@@ -234,6 +255,22 @@ export const completeVerifiedOrder = mutation({
   },
 });
 
+/**
+ * Read a single order for the signed-in user — used by the payment session
+ * initializer so the amount/items always come from the server-side row.
+ * Returns null for other users' orders or when signed out.
+ */
+export const getOrderForCheckout = query({
+  args: { orderId: v.id("orders") },
+  handler: async (ctx, { orderId }) => {
+    const user = await getCurrentUser(ctx);
+    if (user === null) return null;
+    const order = await ctx.db.get(orderId);
+    if (order === null || order.userId !== user._id) return null;
+    return order;
+  },
+});
+
 /** The signed-in user's orders, newest first. */
 export const myOrders = query({
   args: {},
@@ -249,6 +286,15 @@ export const myOrders = query({
 });
 
 /** Remove a resource from the user's library. */
+/** SHA-256 hex digest — WebCrypto is available in every Convex runtime. */
+async function sha256Hex(input: string): Promise<string> {
+  const data = new TextEncoder().encode(input);
+  const digest = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
 export const removeFromLibrary = mutation({
   args: { resourceId: v.string() },
   handler: async (ctx, { resourceId }) => {

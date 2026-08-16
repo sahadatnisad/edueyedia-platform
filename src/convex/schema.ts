@@ -51,6 +51,7 @@ const schema = defineSchema(
       contactMobile: v.optional(v.string()),
       total: v.number(), // taka, computed server-side from the catalog
       gateway: v.optional(v.string()),
+      transactionId: v.optional(v.string()), // gateway transaction reference (e.g. SSLCommerz val_id)
       status: v.union(
         v.literal("pending"),
         v.literal("paid"),

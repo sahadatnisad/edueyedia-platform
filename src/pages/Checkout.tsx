@@ -1,9 +1,9 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link, useNavigate, useSearchParams } from "react-router";
 import { toast } from "sonner";
 import { api } from "@/convex/_generated/api";
-import { useMutation } from "convex/react";
+import { useAction, useMutation } from "convex/react";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Reveal } from "@/components/Reveal";
@@ -44,13 +44,16 @@ export default function Checkout() {
   const { user } = useAuth();
   const createOrder = useMutation(api.library.createOrder);
   const completeOrder = useMutation(api.library.completeVerifiedOrder);
+  const createPaymentSession = useAction(api.payments.createPaymentSession);
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [name, setName] = useState(user?.name ?? "");
   const [email, setEmail] = useState(user?.email ?? "");
   const [mobile, setMobile] = useState("");
   const [placing, setPlacing] = useState(false);
   const [completed, setCompleted] = useState<CompletedOrder | null>(null);
+  const returnVerified = useRef(false);
 
   const items = useMemo(
     () =>
@@ -99,11 +102,28 @@ export default function Checkout() {
         gateway: "sandbox",
       });
 
-      // 2. Verify the payment server-side. Until a live gateway (SSLCommerz)
-      //    is configured, the verify path accepts an explicit sandbox
-      //    verification so the full purchase flow can be exercised end-to-end.
-      //    No real money moves — the order is marked paid and the resources
-      //    are unlocked into the customer's library.
+      // 2. Start the payment session. When SSLCommerz credentials are not
+      //    configured yet, the action reports sandbox mode and we verify the
+      //    demo order directly. With credentials configured, the customer is
+      //    redirected to the gateway (bKash / Nagad / card) and the payment is
+      //    verified server-side when they return.
+      const session = await createPaymentSession({
+        orderId,
+        contactName: trimmedName,
+        contactEmail: trimmedEmail,
+        contactMobile: mobile.trim() || undefined,
+        returnUrl: window.location.origin,
+        convexUrl: import.meta.env.VITE_CONVEX_URL as string,
+      });
+
+      if (session.mode === "live") {
+        // Send the customer to the gateway. The cart stays populated until the
+        // payment is confirmed on return (see the return-verification effect).
+        window.location.assign(session.gatewayPageUrl);
+        return;
+      }
+
+      // Sandbox (demo) path: verify server-side, then unlock the library.
       await completeOrder({
         orderId,
         gateway: "sandbox",
@@ -129,6 +149,77 @@ export default function Checkout() {
       setPlacing(false);
     }
   };
+
+  /* ------------------- Return from payment gateway ------------------- */
+  // SSLCommerz redirects the customer back to /checkout with tran_id/val_id/
+  // status appended. Verify the payment server-side and complete the order.
+  useEffect(() => {
+    const tranId = searchParams.get("tran_id");
+    const valId = searchParams.get("val_id");
+    const status = searchParams.get("status");
+    if (!tranId && !valId) return;
+    if (returnVerified.current) return;
+    returnVerified.current = true;
+
+    if (status === "FAILED" || status === "CANCELLED") {
+      toast.error("Payment was not completed", {
+        description: "Your cart is still saved — you can try again.",
+      });
+      setSearchParams({}, { replace: true });
+      return;
+    }
+
+    // Verification needs both references: the order (tran_id) and the
+    // gateway transaction id (val_id), which only arrives on VALID payments.
+    if (!tranId || !valId) {
+      setSearchParams({}, { replace: true });
+      return;
+    }
+
+    (async () => {
+      try {
+        const response = await fetch(
+          `${import.meta.env.VITE_CONVEX_URL}/payments/verify`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              orderId: tranId,
+              gateway: "sslcommerz",
+              transactionId: valId,
+            }),
+          },
+        );
+        const data = (await response.json()) as {
+          ok?: boolean;
+          error?: string;
+        };
+        if (data.ok) {
+          setCompleted({
+            orderId: tranId,
+            total: cartTotal,
+            titles: cart.map((item) => item.titleBn ?? item.title),
+          });
+          clearCart();
+          window.scrollTo({ top: 0, behavior: "smooth" });
+          toast.success("Payment confirmed", {
+            description: "Your resources are now in your library.",
+          });
+        } else {
+          toast.error("We couldn't confirm your payment", {
+            description: data.error ?? "Please try again.",
+          });
+        }
+      } catch {
+        toast.error("We couldn't confirm your payment", {
+          description: "Please check your library again in a moment.",
+        });
+      } finally {
+        setSearchParams({}, { replace: true });
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   /* ------------------------------ Success ------------------------------ */
   if (completed) {
