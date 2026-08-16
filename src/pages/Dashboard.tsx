@@ -9,15 +9,17 @@ import { Reveal } from "@/components/Reveal";
 import { BookCover } from "@/components/BookCover";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
-import { useResourcesBySlugs } from "@/hooks/use-content";
+import { useMyEnrollments, useResourcesBySlugs } from "@/hooks/use-content";
 import { getResource } from "@/data/catalog";
 import {
   ArrowRight,
   BookMarked,
   CalendarDays,
   Download,
+  GraduationCap,
   Layers,
   LogOut,
+  PlayCircle,
   ReceiptText,
   Sparkles,
   Trash2,
@@ -28,7 +30,9 @@ export default function Dashboard() {
   const { user, signOut } = useAuth();
   const library = useQuery(api.library.myLibrary);
   const orders = useQuery(api.library.myOrders);
+  const enrollments = useMyEnrollments();
   const removeFromLibrary = useMutation(api.library.removeFromLibrary);
+  const recordDownload = useMutation(api.library.recordDownload);
   const navigate = useNavigate();
 
   // Resolve library/order items against published DB resources (legacy fallback).
@@ -82,7 +86,12 @@ export default function Dashboard() {
     toast.success("Removed from library", { description: title });
   };
 
-  const handleDownload = (title: string) => {
+  const handleDownload = async (slug: string, title: string) => {
+    try {
+      await recordDownload({ resourceId: slug });
+    } catch {
+      // Recording is best-effort; never block the download on it.
+    }
     toast.success("Download started", {
       description: `${title} — check your downloads folder.`,
     });
@@ -249,7 +258,9 @@ export default function Dashboard() {
                         <Button
                           size="sm"
                           className="flex-1 rounded-full"
-                          onClick={() => handleDownload(resource!.title)}
+                          onClick={() =>
+                            handleDownload(resource!.slug, resource!.title)
+                          }
                         >
                           <Download className="size-3.5" /> Download
                         </Button>
@@ -265,6 +276,102 @@ export default function Dashboard() {
                     </div>
                   </Reveal>
                 ))}
+              </div>
+            )}
+          </div>
+
+          {/* my courses */}
+          <div className="mt-16">
+            <Reveal>
+              <div className="flex items-end justify-between">
+                <div>
+                  <h2 className="font-serif text-3xl text-navy dark:text-slate-50">
+                    My Courses
+                  </h2>
+                  <p className="font-bangla mt-1 text-sm text-ink-soft dark:text-slate-400">
+                    আপনার এনরোল করা কোর্স ও অগ্রগতি
+                  </p>
+                </div>
+                <Link
+                  to="/courses"
+                  className="link-underline hidden items-center gap-1 text-sm font-semibold text-navy sm:inline-flex dark:text-slate-100"
+                >
+                  Browse courses <ArrowRight className="size-4" />
+                </Link>
+              </div>
+            </Reveal>
+
+            {enrollments === undefined ? (
+              <div className="mt-6 flex flex-col gap-4">
+                {Array.from({ length: 2 }).map((_, i) => (
+                  <div key={i} className="h-28 animate-pulse rounded-3xl bg-muted" />
+                ))}
+              </div>
+            ) : enrollments.length === 0 ? (
+              <Reveal delay={0.1}>
+                <div className="mt-6 flex flex-col items-center gap-4 rounded-[2rem] border border-dashed border-hairline px-6 py-12 text-center dark:border-white/15">
+                  <div className="flex size-14 items-center justify-center rounded-2xl bg-teal/10">
+                    <GraduationCap className="size-7 text-teal dark:text-teal-bright" />
+                  </div>
+                  <div>
+                    <p className="font-serif text-xl text-navy dark:text-slate-100">
+                      No enrollments yet
+                    </p>
+                    <p className="font-bangla mt-1.5 max-w-sm text-sm text-ink-soft dark:text-slate-400">
+                      ফ্রি কোর্সে এনরোল করুন — অগ্রগতি এখানে ট্র্যাক হবে।
+                    </p>
+                  </div>
+                  <Button asChild size="sm" className="rounded-full">
+                    <Link to="/courses">
+                      Explore courses <ArrowRight className="size-3.5" />
+                    </Link>
+                  </Button>
+                </div>
+              </Reveal>
+            ) : (
+              <div className="mt-6 grid gap-4 sm:grid-cols-2">
+                {enrollments.map((c, i) => {
+                  const pct =
+                    c.totalLessons > 0
+                      ? Math.round((c.completedLessons / c.totalLessons) * 100)
+                      : 0;
+                  return (
+                    <Reveal key={c.courseId} delay={Math.min(i * 0.05, 0.2)}>
+                      <Link
+                        to={`/courses/${c.slug}/learn`}
+                        className="group flex h-full flex-col rounded-3xl border border-hairline bg-white p-5 transition-all duration-300 hover:-translate-y-1 hover:border-slate-300 hover:shadow-[0_20px_40px_-20px_rgba(15,34,56,0.22)] dark:border-white/10 dark:bg-navy-surface dark:hover:border-teal/40"
+                      >
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="min-w-0">
+                            <p className="text-[10px] font-bold tracking-[0.16em] text-teal uppercase dark:text-teal-bright">
+                              {c.category}
+                            </p>
+                            <p className="mt-1.5 font-bangla text-lg leading-snug font-bold text-navy group-hover:text-teal dark:text-slate-100 dark:group-hover:text-teal-bright">
+                              {c.titleBn}
+                            </p>
+                            <p className="mt-1 line-clamp-1 font-serif text-[13px] text-ink-soft dark:text-slate-400">
+                              {c.title}
+                            </p>
+                          </div>
+                          <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-navy text-gold dark:bg-teal dark:text-navy-deep">
+                            <PlayCircle className="size-5" />
+                          </span>
+                        </div>
+                        <div className="mt-5 flex items-center gap-3 border-t border-hairline pt-4 dark:border-white/10">
+                          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-cool dark:bg-white/10">
+                            <div
+                              className="h-full rounded-full bg-teal transition-all duration-500 dark:bg-teal-bright"
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                          <span className="text-[11px] font-semibold text-ink-soft dark:text-slate-400">
+                            {c.completedLessons}/{c.totalLessons} · {pct}%
+                          </span>
+                        </div>
+                      </Link>
+                    </Reveal>
+                  );
+                })}
               </div>
             )}
           </div>

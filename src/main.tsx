@@ -30,6 +30,7 @@ const Blog = lazy(() => import("./pages/Blog.tsx"));
 const ArticlePage = lazy(() => import("./pages/ArticlePage.tsx"));
 const Courses = lazy(() => import("./pages/Courses.tsx"));
 const CourseDetail = lazy(() => import("./pages/CourseDetail.tsx"));
+const CourseLearn = lazy(() => import("./pages/CourseLearn.tsx"));
 const About = lazy(() => import("./pages/About.tsx"));
 const Contact = lazy(() => import("./pages/Contact.tsx"));
 const FAQ = lazy(() => import("./pages/FAQ.tsx"));
@@ -196,6 +197,22 @@ createRoot(document.getElementById("root")!).render(
                   <Route path="/blog/:slug" element={<ArticlePage />} />
                   <Route path="/courses" element={<Courses />} />
                   <Route path="/courses/:slug" element={<CourseDetail />} />
+                  <Route
+                    path="/courses/:slug/learn"
+                    element={
+                      <RequireAuth>
+                        <CourseLearn />
+                      </RequireAuth>
+                    }
+                  />
+                  <Route
+                    path="/courses/:slug/learn/:lessonId"
+                    element={
+                      <RequireAuth>
+                        <CourseLearn />
+                      </RequireAuth>
+                    }
+                  />
                   <Route path="/about" element={<About />} />
                   <Route path="/contact" element={<Contact />} />
                   <Route path="/faq" element={<FAQ />} />

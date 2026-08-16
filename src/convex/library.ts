@@ -316,6 +316,29 @@ export const myOrders = query({
   },
 });
 
+/**
+ * Record that the signed-in user downloaded a resource they own. Used for
+ * honest platform analytics (the downloads table, never fabricated counts).
+ */
+export const recordDownload = mutation({
+  args: { resourceId: v.string() },
+  handler: async (ctx, { resourceId }) => {
+    const user = await getCurrentUser(ctx);
+    if (user === null) return;
+    const owned = await ctx.db
+      .query("purchases")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .filter((q) => q.eq(q.field("resourceId"), resourceId))
+      .first();
+    if (owned === null) return; // only owners can trigger a download event
+    await ctx.db.insert("downloads", {
+      userId: user._id,
+      resourceId,
+      downloadedAt: Date.now(),
+    });
+  },
+});
+
 /** Remove a resource from the user's library. */
 /** SHA-256 hex digest — WebCrypto is available in every Convex runtime. */
 async function sha256Hex(input: string): Promise<string> {

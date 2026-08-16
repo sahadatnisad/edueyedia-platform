@@ -12,6 +12,8 @@ import type { CoverStyle } from "./catalog";
 export type CourseStatus = "coming-soon" | "published";
 
 export interface Course {
+  /** DB document id — present when the course comes from Convex. */
+  id?: string;
   slug: string;
   title: string;
   titleBn: string;

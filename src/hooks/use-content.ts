@@ -55,6 +55,29 @@ export function useSiteSetting(key: string) {
   return useQuery(api.content.siteSetting, { key });
 }
 
+/** The signed-in user's course enrollments with progress. */
+export function useMyEnrollments() {
+  return useQuery(api.courses.myEnrollments);
+}
+
+/** The signed-in user's enrollment + completion state for one course. */
+export function useCourseEnrollment(courseId: string | undefined) {
+  return useQuery(api.courses.courseEnrollment, {
+    courseId: courseId as never,
+  });
+}
+
+/** A single lesson's content (enrollment-gated server-side). */
+export function useLessonContent(
+  courseId: string | undefined,
+  lessonId: string | undefined,
+) {
+  return useQuery(api.courses.lessonContent, {
+    courseId: courseId as never,
+    lessonId: lessonId as never,
+  });
+}
+
 /** Whether the signed-in user has the admin role (frontend guard only). */
 export function useIsAdmin() {
   return useQuery(api.admin.isAdmin);

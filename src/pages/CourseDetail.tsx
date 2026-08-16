@@ -1,4 +1,7 @@
-import { Link, useParams } from "react-router";
+import { Link, useNavigate, useParams } from "react-router";
+import { toast } from "sonner";
+import { api } from "@/convex/_generated/api";
+import { useMutation } from "convex/react";
 import {
   ArrowLeft,
   ArrowRight,
@@ -8,6 +11,7 @@ import {
   Clock,
   GraduationCap,
   Layers,
+  PlayCircle,
   Sparkles,
   Users,
 } from "lucide-react";
@@ -16,17 +20,28 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Reveal } from "@/components/Reveal";
 import { CourseCover } from "@/components/CourseCover";
-import { useAllContent, useCourse } from "@/hooks/use-content";
+import { useAuth } from "@/hooks/use-auth";
+import {
+  useAllContent,
+  useCourse,
+  useCourseEnrollment,
+} from "@/hooks/use-content";
 import { courses as legacyCourses, getCourse } from "@/data/courses";
 
 export default function CourseDetail() {
   const { slug } = useParams<{ slug: string }>();
+  const navigate = useNavigate();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
   // DB-backed course (published/coming-soon). Legacy fallback while loading.
   const dbCourse = useCourse(slug);
   const course =
     dbCourse ?? (dbCourse === undefined ? (slug ? getCourse(slug) : undefined) : undefined);
   const content = useAllContent();
   const allCourses = content?.courses ?? legacyCourses;
+  const enrollInCourse = useMutation(api.courses.enrollInCourse);
+  // Enrollment state only applies to DB courses (legacy fallback has no id).
+  const enrollment = useCourseEnrollment(course?.id);
+  const enrolled = enrollment?.enrolled === true;
 
   if (!course) {
     return (
@@ -48,6 +63,21 @@ export default function CourseDetail() {
 
   const related = allCourses.filter((c) => c.slug !== course.slug).slice(0, 3);
   const comingSoon = course.status === "coming-soon";
+
+  const handleEnroll = async () => {
+    if (!course.id) return;
+    if (!isAuthenticated) {
+      navigate(`/auth?returnTo=/courses/${course.slug}`);
+      return;
+    }
+    try {
+      await enrollInCourse({ courseId: course.id as never });
+      toast.success("Enrolled", { description: course.title });
+      navigate(`/courses/${course.slug}/learn`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not enroll.");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-ivory dark:bg-navy-deep">
@@ -149,14 +179,40 @@ export default function CourseDetail() {
                         শুরু করতে পারবেন।
                       </p>
                     </>
-                  ) : (
+                  ) : enrolled ? (
                     <Link
-                      to={course.isFree ? "/auth?returnTo=/courses" : "/checkout"}
+                      to={`/courses/${course.slug}/learn`}
                       className="group inline-flex h-12 items-center gap-2 rounded-full bg-navy px-8 text-sm font-semibold text-white shadow-[0_14px_30px_-12px_rgba(21,34,56,0.5)] transition-all hover:-translate-y-0.5 hover:bg-navy/90 dark:bg-teal dark:text-navy-deep"
                     >
-                      {course.isFree ? "Start Free Course" : "Enroll Now"}
+                      <PlayCircle className="size-4" />
+                      Continue Learning
                       <ArrowRight className="size-4 transition-transform duration-300 group-hover:translate-x-1" />
                     </Link>
+                  ) : course.isFree ? (
+                    <button
+                      type="button"
+                      disabled={authLoading}
+                      onClick={handleEnroll}
+                      className="inline-flex h-12 items-center gap-2 rounded-full bg-navy px-8 text-sm font-semibold text-white shadow-[0_14px_30px_-12px_rgba(21,34,56,0.5)] transition-all hover:-translate-y-0.5 hover:bg-navy/90 disabled:opacity-60 dark:bg-teal dark:text-navy-deep"
+                    >
+                      Start Free Course
+                      <ArrowRight className="size-4" />
+                    </button>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        disabled
+                        className="inline-flex h-12 cursor-not-allowed items-center gap-2 rounded-full bg-navy/70 px-8 text-sm font-semibold text-white/70 dark:bg-teal/60 dark:text-navy-deep/80"
+                      >
+                        Enroll Now
+                        <ArrowRight className="size-4" />
+                      </button>
+                      <p className="font-bangla max-w-xs text-xs leading-relaxed text-ink-soft dark:text-slate-400">
+                        পেইড কোর্সের এনরোলমেন্ট শীঘ্রই চালু হচ্ছে — এই মুহূর্তে
+                        কোনো পেমেন্ট নেওয়া হয় না।
+                      </p>
+                    </>
                   )}
                 </div>
               </Reveal>

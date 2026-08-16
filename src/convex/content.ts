@@ -131,6 +131,7 @@ export function courseToFrontend(
     0,
   );
   return {
+    id: row._id as string,
     slug: row.slug,
     title: row.title,
     titleBn: row.titleBn,
@@ -538,8 +539,9 @@ export const searchAll = query({
 
 /** Course lesson list for a course (public, published lessons only). */
 export const courseLessons = query({
-  args: { courseId: v.id("courses") },
+  args: { courseId: v.optional(v.id("courses")) },
   handler: async (ctx, { courseId }) => {
+    if (courseId === undefined) return [];
     const mods = await ctx.db
       .query("courseModules")
       .withIndex("by_course", (q) => q.eq("courseId", courseId))
