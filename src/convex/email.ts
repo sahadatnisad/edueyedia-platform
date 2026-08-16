@@ -24,11 +24,11 @@ import { createVlyIntegrations } from "@vly-ai/integrations";
 const FROM_NAME = "Edueyedia";
 const SUPPORT_EMAIL = "hello@edueyedia.com";
 
-const siteUrl = () => (process.env.SITE_URL ?? "").replace(/\/$/, "");
-
-function hasProvider(): boolean {
-  return Boolean(process.env.RESEND_API_KEY);
-}
+/** Canonical site base — SITE_URL when set, otherwise the brand domain.
+ *  Email links must always be absolute: a relative "/dashboard" in an
+ *  email resolves against the reader's mail client, not the site. */
+const siteUrl = () =>
+  (process.env.SITE_URL ?? "https://edueyedia.com").replace(/\/$/, "");
 
 async function deliver(
   to: string,
@@ -134,8 +134,8 @@ export const sendOrderConfirmation = action({
     const order = await ctx.runQuery(api.emailData.orderForEmail, { orderId });
     if (order === null) return { sent: false as const };
     const base = siteUrl();
-    const dashboard = base ? `${base}/dashboard` : "/dashboard";
-    const courses = order.hasCourses ? `${base ? base : ""}/courses` : null;
+    const dashboard = `${base}/dashboard`;
+    const courses = order.hasCourses ? `${base}/courses` : null;
 
     const itemsHtml = order.items
       .map(
@@ -198,7 +198,7 @@ export const sendResourceReady = action({
     });
     if (resource === null) return { sent: false as const };
     const base = siteUrl();
-    const dashboard = base ? `${base}/dashboard` : "/dashboard";
+    const dashboard = `${base}/dashboard`;
 
     const body = `
       <p style="margin:0 0 16px;color:#334155;font-size:14px;line-height:1.7;">
@@ -234,7 +234,7 @@ export const sendCourseEnrollment = action({
     const row = await ctx.runQuery(api.emailData.courseForEmail, { courseId });
     const title = row?.title ?? "your course";
     const base = siteUrl();
-    const learn = row ? `${base ? base : ""}/courses/${row.slug}/learn` : `${base ? base : ""}/courses`;
+    const learn = row ? `${base}/courses/${row.slug}/learn` : `${base}/courses`;
 
     const body = `
       <p style="margin:0 0 16px;color:#334155;font-size:14px;line-height:1.7;">

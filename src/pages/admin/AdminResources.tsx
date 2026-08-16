@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { useMutation, useQuery } from "convex/react";
 import { toast } from "sonner";
@@ -43,17 +43,12 @@ const STATUS_BADGE: Record<string, string> = {
 
 export default function AdminResources() {
   const list = useQuery(api.admin.listResourcesAdmin);
-  const categories = useResourceCategories();
   const setStatus = useMutation(api.admin.setResourceStatus);
   const duplicate = useMutation(api.admin.duplicateResource);
   const remove = useMutation(api.admin.deleteResource);
   const navigate = useNavigate();
   const [busyId, setBusyId] = useState<string | null>(null);
 
-  const catName = useMemo(
-    () => new Map((categories ?? []).map((c) => [c.slug, c.name])),
-    [categories],
-  );
 
   return (
     <div className="mx-auto max-w-6xl">

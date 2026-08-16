@@ -6,6 +6,7 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Reveal } from "@/components/Reveal";
 import { ArticleCard } from "@/components/ArticleCard";
+import { PageMeta } from "@/components/seo";
 import { useAllContent } from "@/hooks/use-content";
 import { articles as legacyArticles } from "@/data/catalog";
 import { extraArticles as legacyExtraArticles } from "@/data/extraArticles";
@@ -47,6 +48,11 @@ export default function Blog() {
 
   return (
     <div className="min-h-screen bg-ivory dark:bg-navy-deep">
+      <PageMeta
+        title="Blog — Edueyedia"
+        description="শিক্ষা, স্কলারশিপ, উচ্চশিক্ষা ও ক্যারিয়ার নিয়ে নির্বাচিত লেখা — scholarship strategy, study-abroad planning, academic writing and practical guides in Bangla."
+        path="/blog"
+      />
       <Navbar />
       <main className="pt-32 pb-24 sm:pt-36">
         {/* Hero */}

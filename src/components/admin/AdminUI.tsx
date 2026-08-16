@@ -252,14 +252,6 @@ export const BLOCK_TYPES: { value: Block["type"]; label: string }[] = [
 
 const CALLOUT_VARIANTS = ["key", "note", "important", "example", "source"];
 
-const slugId = (text: string) =>
-  text
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9\u0980-\u09FF]+/g, "-")
-    .replace(/(^-|-$)+/g, "")
-    .slice(0, 60) || `section-${Math.random().toString(36).slice(2, 7)}`;
-
 function newBlock(type: Block["type"]): Block {
   switch (type) {
     case "h2":

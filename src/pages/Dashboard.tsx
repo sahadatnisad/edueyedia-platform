@@ -10,6 +10,7 @@ import { Footer } from "@/components/Footer";
 import { Reveal } from "@/components/Reveal";
 import { BookCover } from "@/components/BookCover";
 import { Button } from "@/components/ui/button";
+import { PageMeta } from "@/components/seo";
 import { useAuth } from "@/hooks/use-auth";
 import { useMyEnrollments, useResourcesBySlugs } from "@/hooks/use-content";
 import { getResource } from "@/data/catalog";
@@ -122,6 +123,11 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-ivory dark:bg-navy-deep">
+      <PageMeta
+        title="My Dashboard — Edueyedia"
+        description="Your Edueyedia library, courses and order history."
+        path="/dashboard"
+      />
       <Navbar />
       <main className="pt-32 pb-24 sm:pt-36">
         <div className="mx-auto max-w-6xl px-6">

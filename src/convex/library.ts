@@ -20,15 +20,6 @@ async function catalogPrice(ctx: MutationCtx, resourceId: string): Promise<numbe
   return row.isFree ? 0 : row.price;
 }
 
-async function coursePrice(
-  ctx: MutationCtx,
-  courseId: Id<"courses">,
-): Promise<number> {
-  const row = await ctx.db.get(courseId);
-  if (!row) return 0;
-  return row.isFree ? 0 : row.price;
-}
-
 /**
  * The signed-in user's library: every resource they own, newest first.
  * Returns an empty array when signed out.
@@ -172,6 +163,13 @@ export const createOrder = mutation({
       throw new Error("Please provide your name and email.");
     }
 
+    // Abuse protection: payment initialization is rate-limited per user.
+    await ctx.runMutation(api.ratelimit.hit, {
+      key: `order:${user._id}`,
+      limit: 10,
+      windowMs: 60 * 60 * 1000,
+    });
+
     const resourceIds: string[] = [];
     const courseIds: Id<"courses">[] = [];
     const lineItems: {
@@ -287,6 +285,15 @@ export const completeVerifiedOrder = mutation({
     }
     if (order.total <= 0) {
       throw new Error("Order total is invalid.");
+    }
+
+    // Ownership check: when a signed-in caller completes an order, it must be
+    // their own. (The /payments/verify HTTP action and the SSLCommerz IPN run
+    // without a user session — `getCurrentUser` returns null there and they
+    // are gated by the gateway proof / sandbox flag below instead.)
+    const actor = await getCurrentUser(ctx);
+    if (actor !== null && actor._id !== order.userId) {
+      throw new Error("This order belongs to another account.");
     }
 
     const storeId = process.env.SSLCOMMERZ_STORE_ID ?? "";
@@ -482,6 +489,13 @@ export const subscribeNewsletter = mutation({
     if (!normalized.includes("@")) {
       throw new Error("Please enter a valid email address.");
     }
+
+    // Abuse protection: at most 5 subscribe attempts per address per hour.
+    await ctx.runMutation(api.ratelimit.hit, {
+      key: `newsletter:${normalized}`,
+      limit: 5,
+      windowMs: 60 * 60 * 1000,
+    });
 
     const existing = await ctx.db
       .query("newsletters")

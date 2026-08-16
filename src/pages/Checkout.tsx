@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { useSite } from "@/components/site/SiteContext";
 import { useAuth } from "@/hooks/use-auth";
 import { useResourcesBySlugs } from "@/hooks/use-content";
+import { PageMeta } from "@/components/seo";
 import { getResource } from "@/data/catalog";
 import type { Course } from "@/data/courses";
 import {
@@ -270,6 +271,11 @@ export default function Checkout() {
   if (completed) {
     return (
       <div className="min-h-screen bg-ivory dark:bg-navy-deep">
+        <PageMeta
+          title="Order confirmed — Edueyedia"
+          description="Your Edueyedia order is confirmed and your library is unlocked."
+          path="/checkout"
+        />
         <Navbar />
         <main className="pt-36 pb-28 sm:pt-44">
           <div className="mx-auto max-w-2xl px-6">
@@ -361,6 +367,11 @@ export default function Checkout() {
   if (isEmpty) {
     return (
       <div className="min-h-screen bg-ivory dark:bg-navy-deep">
+        <PageMeta
+          title="Checkout — Edueyedia"
+          description="Secure checkout for Edueyedia digital resources and courses."
+          path="/checkout"
+        />
         <Navbar />
         <main className="pt-36 pb-28 sm:pt-44">
           <div className="mx-auto max-w-xl px-6">
@@ -395,6 +406,11 @@ export default function Checkout() {
   /* ------------------------------ Checkout ------------------------------ */
   return (
     <div className="min-h-screen bg-ivory dark:bg-navy-deep">
+      <PageMeta
+        title="Checkout — Edueyedia"
+        description="Secure checkout for Edueyedia digital resources and courses."
+        path="/checkout"
+      />
       <Navbar />
       <main className="pt-32 pb-24 sm:pt-40">
         <div className="mx-auto max-w-6xl px-6">

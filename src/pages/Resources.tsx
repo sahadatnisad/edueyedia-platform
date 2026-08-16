@@ -6,6 +6,7 @@ import { Footer } from "@/components/Footer";
 import { Reveal } from "@/components/Reveal";
 import { ResourceCard } from "@/components/ResourceCard";
 import { ArticleCard } from "@/components/ArticleCard";
+import { PageMeta } from "@/components/seo";
 import {
   useAllContent,
   useResourceCategories,
@@ -67,6 +68,11 @@ export default function Resources() {
 
   return (
     <div className="min-h-screen bg-ivory dark:bg-navy-deep">
+      <PageMeta
+        title="Resource Library — Edueyedia"
+        description="গবেষণা, স্কলারশিপ, একাডেমিক রাইটিং ও উচ্চশিক্ষার জন্য নির্বাচিত গাইড, টেমপ্লেট ও ডিজিটাল রিসোর্স — instant digital delivery in Bangla."
+        path="/resources"
+      />
       <Navbar />
       <main className="pt-32 pb-24 sm:pt-36">
         {/* Header */}

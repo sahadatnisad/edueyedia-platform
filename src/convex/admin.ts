@@ -6,6 +6,7 @@ import {
   MutationCtx,
   QueryCtx,
 } from "./_generated/server";
+import type { Id } from "./_generated/dataModel";
 import {
   articleBlockValidator,
   contentStatusValidator,
@@ -129,6 +130,46 @@ async function log(
     details: details as never,
     createdAt: Date.now(),
   });
+}
+
+/* --------------------------- publish guards ------------------------ */
+
+/** Whether a resource has an active main file attached (publish requirement). */
+async function resourceHasActiveFile(
+  ctx: MutationCtx,
+  resourceSlug: string,
+): Promise<boolean> {
+  const row = await ctx.db
+    .query("resourceFiles")
+    .withIndex("by_resource", (q) => q.eq("resourceId", resourceSlug))
+    .filter((q) =>
+      q.and(
+        q.eq(q.field("kind"), "main"),
+        q.eq(q.field("status"), "active"),
+      ),
+    )
+    .first();
+  return row !== null;
+}
+
+/**
+ * Whether a course has at least one module with at least one lesson — a
+ * paid course must never be published as an empty shell.
+ */
+async function courseHasContent(
+  ctx: MutationCtx,
+  courseId: Id<"courses">,
+): Promise<boolean> {
+  const mod = await ctx.db
+    .query("courseModules")
+    .withIndex("by_course", (q) => q.eq("courseId", courseId))
+    .first();
+  if (mod === null) return false;
+  const lesson = await ctx.db
+    .query("courseLessons")
+    .withIndex("by_module", (q) => q.eq("moduleId", mod._id))
+    .first();
+  return lesson !== null;
 }
 
 /* ------------------------------ validators ------------------------- */
@@ -392,6 +433,12 @@ export const upsertResource = mutation({
         createdAt: now,
         updatedAt: now,
       });
+      // Publish guard (server-side): a published resource must have a real file.
+      if (data.status === "published" && !(await resourceHasActiveFile(ctx, slug))) {
+        throw new Error(
+          "Attach a PDF file before publishing this resource — save as draft, upload the file, then publish.",
+        );
+      }
       await log(ctx, actor._id, "resource.created", "resource", newId, { title });
       return newId;
     }
@@ -400,6 +447,13 @@ export const upsertResource = mutation({
     if (!existing) throw new Error("Resource not found.");
     const statusChanged = existing.status !== data.status;
     const priceChanged = existing.price !== data.price;
+    // Publish guard: only transitions INTO published are blocked without a file,
+    // so editing an already-published resource is never interrupted.
+    if (statusChanged && data.status === "published") {
+      if (!(await resourceHasActiveFile(ctx, existing.slug))) {
+        throw new Error("Attach a PDF file before publishing this resource.");
+      }
+    }
     await ctx.db.patch(id, {
       ...data,
       title,
@@ -431,6 +485,12 @@ export const setResourceStatus = mutation({
     const actor = await requireAdmin(ctx);
     const existing = await ctx.db.get(id);
     if (!existing) throw new Error("Resource not found.");
+    // Publish guard (server-side): publishing requires an attached file.
+    if (status === "published" && existing.status !== "published") {
+      if (!(await resourceHasActiveFile(ctx, existing.slug))) {
+        throw new Error("Attach a PDF file before publishing this resource.");
+      }
+    }
     await ctx.db.patch(id, {
       status,
       updatedAt: Date.now(),
@@ -793,6 +853,12 @@ export const upsertCourse = mutation({
         createdAt: now,
         updatedAt: now,
       });
+      // A published course must have real content (≥1 module with ≥1 lesson).
+      if (data.status === "published" && !(await courseHasContent(ctx, newId))) {
+        throw new Error(
+          "Add at least one module with one lesson before publishing this course.",
+        );
+      }
       await log(ctx, actor._id, "course.created", "course", newId, { title });
       return newId;
     }
@@ -801,6 +867,13 @@ export const upsertCourse = mutation({
     if (!existing) throw new Error("Course not found.");
     const statusChanged = existing.status !== data.status;
     const priceChanged = existing.price !== data.price;
+    if (statusChanged && data.status === "published") {
+      if (!(await courseHasContent(ctx, id))) {
+        throw new Error(
+          "Add at least one module with one lesson before publishing this course.",
+        );
+      }
+    }
     await ctx.db.patch(id, {
       ...data,
       title,
@@ -831,6 +904,13 @@ export const setCourseStatus = mutation({
     const actor = await requireAdmin(ctx);
     const existing = await ctx.db.get(id);
     if (!existing) throw new Error("Course not found.");
+    if (status === "published" && existing.status !== "published") {
+      if (!(await courseHasContent(ctx, id))) {
+        throw new Error(
+          "Add at least one module with one lesson before publishing this course.",
+        );
+      }
+    }
     await ctx.db.patch(id, {
       status,
       updatedAt: Date.now(),

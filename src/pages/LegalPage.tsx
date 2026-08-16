@@ -3,6 +3,7 @@ import { ArrowLeft, ArrowRight, Scale } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Reveal } from "@/components/Reveal";
+import { PageMeta } from "@/components/seo";
 import { cn } from "@/lib/utils";
 
 export type LegalPageKey =
@@ -261,11 +262,28 @@ const DOCS: Record<LegalPageKey, LegalDoc> = {
   },
 };
 
+/** Route path for a legal page key (matches src/main.tsx routes). */
+function legalPath(page: LegalPageKey): string {
+  switch (page) {
+    case "refund":
+      return "/refund-policy";
+    case "digital-product":
+      return "/digital-product-policy";
+    default:
+      return `/${page}`;
+  }
+}
+
 export default function LegalPage({ page }: { page: LegalPageKey }) {
   const doc = DOCS[page];
 
   return (
     <div className="min-h-screen bg-ivory dark:bg-navy-deep">
+      <PageMeta
+        title={`${doc.eyebrow} — Edueyedia`}
+        description={`${doc.title}. ${doc.intro}`}
+        path={legalPath(page)}
+      />
       <Navbar />
       <main className="pt-32 pb-24 sm:pt-36">
         {/* Header */}

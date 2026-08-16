@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
+import { PageMeta } from "@/components/seo";
 import {
   useCourse,
   useCourseEnrollment,
@@ -130,6 +131,11 @@ export default function CourseLearn() {
 
   return (
     <div className="min-h-screen bg-ivory dark:bg-navy-deep">
+      <PageMeta
+        title={`${course.titleBn || course.title} — Course Player | Edueyedia`}
+        description={`Learn ${course.title} at your own pace — lessons, progress and downloads.`}
+        path={`/courses/${course.slug}/learn`}
+      />
       <Navbar />
       <main className="pt-24 pb-24 sm:pt-28">
         <div className="mx-auto max-w-6xl px-6">

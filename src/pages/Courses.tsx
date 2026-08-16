@@ -7,6 +7,7 @@ import { Footer } from "@/components/Footer";
 import { Reveal } from "@/components/Reveal";
 import { SectionHeading } from "@/components/SectionHeading";
 import { CourseCover } from "@/components/CourseCover";
+import { PageMeta } from "@/components/seo";
 import { useAllContent } from "@/hooks/use-content";
 import { courses as legacyCourses, type Course } from "@/data/courses";
 
@@ -37,10 +38,13 @@ export default function Courses() {
     return list;
   }, [filter, courses]);
 
-  const featured = courses.find((c) => c.status === "published") ?? courses[0];
-
   return (
     <div className="min-h-screen bg-ivory dark:bg-navy-deep">
+      <PageMeta
+        title="Courses — Edueyedia"
+        description="গবেষণা, একাডেমিক দক্ষতা, স্কলারশিপ প্রস্তুতি এবং উচ্চশিক্ষার জন্য structured Bangla courses — ধাপে ধাপে, মডিউলে মডিউলে। Learn deeply. Apply confidently."
+        path="/courses"
+      />
       <Navbar />
       <main className="pt-32 pb-24 sm:pt-36">
         {/* ------------------------------ Hero ------------------------------ */}

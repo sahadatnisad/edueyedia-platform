@@ -1,9 +1,9 @@
+import { useMemo } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { toast } from "sonner";
 import { api } from "@/convex/_generated/api";
 import { useMutation } from "convex/react";
 import {
-  ArrowLeft,
   ArrowRight,
   BarChart3,
   CheckCircle2,
@@ -21,6 +21,7 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Reveal } from "@/components/Reveal";
 import { CourseCover } from "@/components/CourseCover";
+import { PageMeta } from "@/components/seo";
 import { useSite } from "@/components/site/SiteContext";
 import { useAuth } from "@/hooks/use-auth";
 import {
@@ -45,6 +46,29 @@ export default function CourseDetail() {
   // Enrollment state only applies to DB courses (legacy fallback has no id).
   const enrollment = useCourseEnrollment(course?.id);
   const enrolled = enrollment?.enrolled === true;
+
+  const courseJsonLd = useMemo(
+    () =>
+      course
+        ? {
+            "@context": "https://schema.org",
+            "@type": "Course",
+            name: course.titleBn || course.title,
+            description: course.shortDescription || course.description,
+            provider: {
+              "@type": "Organization",
+              name: "Edueyedia",
+            },
+            offers: {
+              "@type": "Offer",
+              price: course.price,
+              priceCurrency: "BDT",
+              availability: "https://schema.org/InStock",
+            },
+          }
+        : undefined,
+    [course],
+  );
 
   if (!course) {
     return (
@@ -89,6 +113,12 @@ export default function CourseDetail() {
 
   return (
     <div className="min-h-screen bg-ivory dark:bg-navy-deep">
+      <PageMeta
+        title={`${course.titleBn || course.title} — Edueyedia Course`}
+        description={course.shortDescription || course.description}
+        path={`/courses/${course.slug}`}
+        jsonLd={courseJsonLd}
+      />
       <Navbar />
       <main className="pt-28 pb-24 sm:pt-32">
         <div className="mx-auto max-w-6xl px-6">

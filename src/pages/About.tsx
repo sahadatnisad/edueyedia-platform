@@ -15,6 +15,7 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Reveal } from "@/components/Reveal";
 import { SectionHeading } from "@/components/SectionHeading";
+import { PageMeta } from "@/components/seo";
 import { useAllContent } from "@/hooks/use-content";
 import { resources as legacyResources } from "@/data/catalog";
 
@@ -162,6 +163,11 @@ const STORY = [
 
   return (
     <div className="min-h-screen bg-ivory dark:bg-navy-deep">
+      <PageMeta
+        title="About Edueyedia — Research. Learn. Advance."
+        description="এডুইডিয়া — গবেষণা, শিক্ষা ও সুযোগের বিশ্বস্ত ডিজিটাল প্ল্যাটফর্ম। A research-focused digital publishing platform built for Bangla-speaking learners, researchers and scholarship seekers."
+        path="/about"
+      />
       <Navbar />
       <main>
         {/* ------------------------------ Hero ------------------------------ */}

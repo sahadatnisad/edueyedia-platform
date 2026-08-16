@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router";
 import { cn } from "@/lib/utils";
 import { Navbar } from "@/components/Navbar";
@@ -22,6 +22,7 @@ import {
 } from "@/hooks/use-content";
 import { getArticle, getResource, articles as legacyArticles } from "@/data/catalog";
 import { articlePath } from "@/data/navigation";
+import { PageMeta } from "@/components/seo";
 
 export default function ArticlePage() {
   const { slug } = useParams<{ slug: string }>();
@@ -36,6 +37,25 @@ export default function ArticlePage() {
 
   const headings = article?.blocks.filter(
     (b): b is Extract<typeof b, { type: "h2" }> => b.type === "h2",
+  );
+
+  const articleJsonLd = useMemo(
+    () =>
+      article
+        ? {
+            "@context": "https://schema.org",
+            "@type": "Article",
+            headline: article.title,
+            description: article.excerpt,
+            datePublished: article.date || undefined,
+            author: { "@type": "Organization", name: article.author },
+            publisher: {
+              "@type": "Organization",
+              name: "Edueyedia",
+            },
+          }
+        : undefined,
+    [article],
   );
 
   useEffect(() => {
@@ -92,6 +112,7 @@ export default function ArticlePage() {
       ? article.relatedResources.map(getResource).filter(Boolean).slice(0, 3)
       : []);
   const articles = content?.articles ?? legacyArticles;
+
   const moreArticles = articles
     .filter((a) => a.slug !== article.slug)
     .slice(0, 2);
@@ -105,6 +126,13 @@ export default function ArticlePage() {
 
   return (
     <div className="min-h-screen bg-ivory dark:bg-navy-deep">
+      <PageMeta
+        title={`${article.title} — Edueyedia`}
+        description={article.excerpt}
+        path={articlePath(article)}
+        jsonLd={articleJsonLd}
+        type="article"
+      />
       <Navbar />
       <main className="pt-28 pb-24 sm:pt-32">
         <article className="mx-auto max-w-6xl px-6">

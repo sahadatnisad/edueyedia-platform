@@ -9,6 +9,7 @@ import { SectionHeading } from "@/components/SectionHeading";
 import { ArticleCard } from "@/components/ArticleCard";
 import { ResourceCard } from "@/components/ResourceCard";
 import { Newsletter } from "@/components/landing/Newsletter";
+import { PageMeta } from "@/components/seo";
 import { useAllContent } from "@/hooks/use-content";
 import {
   articles as legacyArticles,
@@ -107,6 +108,11 @@ export default function Research() {
 
   return (
     <div className="min-h-screen bg-ivory dark:bg-navy-deep">
+      <PageMeta
+        title="Research Hub — Edueyedia"
+        description="গবেষণা পদ্ধতি, গবেষণা প্রবন্ধ, methodology, academic writing, data analysis ও publication নিয়ে বিশ্লেষণ, আলোচনা ও ব্যবহারিক গাইড — Research, reviewed and explained."
+        path="/research"
+      />
       <Navbar />
       <main className="pt-32 pb-24 sm:pt-36">
         {/* ------------------------------ Hero ------------------------------ */}

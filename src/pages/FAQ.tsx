@@ -4,6 +4,7 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Reveal } from "@/components/Reveal";
 import { Newsletter } from "@/components/landing/Newsletter";
+import { PageMeta } from "@/components/seo";
 import {
   Accordion,
   AccordionContent,
@@ -115,8 +116,26 @@ const GROUPS: {
 ];
 
 export default function FAQ() {
+  const faqJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: GROUPS.flatMap((g) =>
+      g.items.map((item) => ({
+        "@type": "Question",
+        name: item.q,
+        acceptedAnswer: { "@type": "Answer", text: item.a },
+      })),
+    ),
+  };
+
   return (
     <div className="min-h-screen bg-ivory dark:bg-navy-deep">
+      <PageMeta
+        title="FAQ — Edueyedia"
+        description="অ্যাকাউন্ট, অর্ডার, রিফান্ড ও কন্টেন্ট নিয়ে সাধারণ প্রশ্নের উত্তর — accounts, orders, refunds and content answers in Bangla."
+        path="/faq"
+        jsonLd={faqJsonLd}
+      />
       <Navbar />
       <main className="pt-32 pb-24 sm:pt-36">
         {/* Hero */}

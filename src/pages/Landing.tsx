@@ -13,10 +13,17 @@ import { LatestInsights } from "@/components/landing/LatestInsights";
 import { WhyEdueyedia } from "@/components/landing/WhyEdueyedia";
 import { Newsletter } from "@/components/landing/Newsletter";
 import { FinalCTA } from "@/components/landing/FinalCTA";
+import { PageMeta, organizationJsonLd } from "@/components/seo";
 
 export default function Landing() {
   return (
     <div className="min-h-screen bg-ivory dark:bg-navy-deep">
+      <PageMeta
+        title="Edueyedia — Research. Learn. Advance."
+        description="গবেষণা, শিক্ষা ও সুযোগের বিশ্বস্ত ডিজিটাল প্ল্যাটফর্ম — research guides, scholarships, academic writing and study-abroad resources in Bangla."
+        path="/"
+        jsonLd={organizationJsonLd()}
+      />
       <Navbar />
       <main>
         <Hero />

@@ -19,7 +19,7 @@ const canonicalSite = () =>
 http.route({
   path: "/robots.txt",
   method: "GET",
-  handler: httpAction(async (_ctx) => {
+  handler: httpAction(async () => {
     const site = canonicalSite();
     return new Response(
       [

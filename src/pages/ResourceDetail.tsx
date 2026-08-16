@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { toast } from "sonner";
 import { api } from "@/convex/_generated/api";
@@ -18,6 +18,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { PageMeta, breadcrumbJsonLd } from "@/components/seo";
 import { useSite } from "@/components/site/SiteContext";
 import { useAuth } from "@/hooks/use-auth";
 import { useResource, useResourcesBySlugs } from "@/hooks/use-content";
@@ -71,6 +72,25 @@ export default function ResourceDetail() {
   const owns = useQuery(api.library.ownsResource, { resourceId: slug ?? "" });
   const navigate = useNavigate();
   const [downloading, setDownloading] = useState(false);
+
+  const productJsonLd = useMemo(
+    () =>
+      resource
+        ? {
+            "@context": "https://schema.org",
+            "@type": "Product",
+            name: resource.titleBn ?? resource.title,
+            description: resource.summary,
+            offers: {
+              "@type": "Offer",
+              price: resource.price,
+              priceCurrency: "BDT",
+              availability: "https://schema.org/InStock",
+            },
+          }
+        : undefined,
+    [resource],
+  );
 
   if (!resource) {
     return (
@@ -162,6 +182,20 @@ export default function ResourceDetail() {
 
   return (
     <div className="min-h-screen bg-ivory dark:bg-navy-deep">
+      <PageMeta
+        title={`${resource.titleBn ?? resource.title} — Edueyedia`}
+        description={resource.summary}
+        path={`/resources/${resource.slug}`}
+        jsonLd={
+          productJsonLd
+            ? [productJsonLd, breadcrumbJsonLd([
+                { name: "Resource Library", path: "/resources" },
+                { name: resource.titleBn ?? resource.title, path: `/resources/${resource.slug}` },
+              ])]
+            : undefined
+        }
+        type="product"
+      />
       <Navbar />
       <main className="pt-28 pb-24 sm:pt-32">
         <div className="mx-auto max-w-6xl px-6">

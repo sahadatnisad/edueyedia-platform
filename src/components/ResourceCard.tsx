@@ -1,5 +1,5 @@
 import { Link } from "react-router";
-import { ArrowRight, BookOpen, CalendarDays, FileText, Languages } from "lucide-react";
+import { ArrowRight, CalendarDays, FileText, Languages } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Resource } from "@/data/catalog";
 import { BookCover } from "@/components/BookCover";

@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
+import { PageMeta } from "@/components/seo";
 
 export default function NotFound() {
   return (
@@ -12,6 +13,11 @@ export default function NotFound() {
       transition={{ duration: 0.5 }}
       className="min-h-screen flex flex-col bg-ivory dark:bg-navy-deep"
     >
+      <PageMeta
+        title="Page not found — Edueyedia"
+        description="The page you are looking for was moved or never existed."
+        path={window.location.pathname}
+      />
       <Navbar />
       <main className="relative flex flex-1 flex-col items-center justify-center overflow-hidden px-6 py-28">
         <div aria-hidden className="pointer-events-none absolute inset-0 line-grid text-navy opacity-[0.05] dark:text-white" />

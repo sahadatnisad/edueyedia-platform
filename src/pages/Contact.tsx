@@ -18,6 +18,7 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Reveal } from "@/components/Reveal";
 import { Newsletter } from "@/components/landing/Newsletter";
+import { PageMeta } from "@/components/seo";
 
 const CHANNELS = [
   {
@@ -91,6 +92,11 @@ export default function Contact() {
 
   return (
     <div className="min-h-screen bg-ivory dark:bg-navy-deep">
+      <PageMeta
+        title="Contact — Edueyedia"
+        description="অর্ডার, লাইব্রেরি, রিফান্ড বা কন্টেন্ট নিয়ে প্রশ্ন থাকলে জানান — we reply to every message, usually within one business day."
+        path="/contact"
+      />
       <Navbar />
       <main className="pt-32 pb-24 sm:pt-36">
         {/* Hero */}

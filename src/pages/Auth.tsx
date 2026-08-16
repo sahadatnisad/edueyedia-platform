@@ -5,6 +5,7 @@ import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp
 import { Link } from "react-router";
 
 import { useAuth } from "@/hooks/use-auth";
+import { PageMeta } from "@/components/seo";
 import { ArrowLeft, ArrowRight, BookOpen, Loader2, Mail, UserX } from "lucide-react";
 import { Suspense, useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
@@ -97,6 +98,11 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
 
   return (
     <div className="relative flex min-h-screen flex-col bg-ivory dark:bg-navy-deep">
+      <PageMeta
+        title="Sign in — Edueyedia"
+        description="Sign in to Edueyedia to manage your library, courses and downloads."
+        path="/auth"
+      />
       {/* motifs */}
       <div aria-hidden className="pointer-events-none absolute inset-0 line-grid text-navy opacity-[0.05] dark:text-white" />
       <div aria-hidden className="pointer-events-none absolute -top-32 right-[-10%] h-96 w-96 rounded-full bg-teal/10 blur-3xl" />
