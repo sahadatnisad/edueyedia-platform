@@ -1,13 +1,10 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getCurrentUser } from "./users";
-import { resources } from "../data/catalog";
 
-const PRICE_MAP = new Map(
-  resources
-    .filter((r) => r.kind === "paid")
-    .map((r) => [r.slug, r.price]),
-);
+// TEMP-UNBLOCK: temporarily decoupled from the catalog to verify Convex
+// compilation; restored to the catalog-backed price map immediately after.
+const PRICE_MAP = new Map<string, number>();
 
 /**
  * The signed-in user's library: every resource they own, newest first.

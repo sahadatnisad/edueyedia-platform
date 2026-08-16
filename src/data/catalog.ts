@@ -108,10 +108,45 @@ export type ArticleBlock =
   | { type: "timeline"; steps: string[] }
   | { type: "reference"; items: string[] };
 
+/* --------------------------- research taxonomy ---------------------- */
+
+export type ResearchContentType =
+  | "research-guide"
+  | "paper-review"
+  | "methodology"
+  | "research-discussion"
+  | "literature-review"
+  | "data-analysis"
+  | "research-ethics"
+  | "publication"
+  | "research-tools"
+  | "evidence-review";
+
+export const RESEARCH_TOPICS: {
+  id: ResearchContentType;
+  label: string;
+  bn: string;
+}[] = [
+  { id: "research-guide", label: "Research Guide", bn: "গবেষণা গাইড" },
+  { id: "methodology", label: "Methodology", bn: "মেথডোলজি" },
+  { id: "literature-review", label: "Literature Review", bn: "লিটারেচার রিভিউ" },
+  { id: "research-discussion", label: "Research Discussion", bn: "গবেষণা আলোচনা" },
+  { id: "data-analysis", label: "Data & Analysis", bn: "ডেটা ও বিশ্লেষণ" },
+  { id: "academic-writing", label: "Academic Writing", bn: "অ্যাকাডেমিক রাইটিং" },
+  { id: "research-ethics", label: "Research Ethics", bn: "রিসার্চ এথিক্স" },
+  { id: "publication", label: "Publication", bn: "প্রকাশনা" },
+  { id: "paper-review", label: "Paper Review", bn: "পেপার রিভিউ" },
+  { id: "research-tools", label: "Research Tools", bn: "রিসার্চ টুলস" },
+];
+
+export const researchArticles = () =>
+  articles.filter((a) => a.category === "research");
+
 export interface Article {
   slug: string;
   title: string;
   titleBn?: string;
+  contentType?: ResearchContentType;
   category: Category | "insights";
   categoryLabel: string;
   author: string;
@@ -1636,6 +1671,7 @@ export const articles: Article[] = [
     slug: "how-to-choose-a-research-topic",
     title: "How to Choose a Research Topic That Matters",
     titleBn: "গুরুত্বপূর্ণ একটি গবেষণা বিষয় কীভাবে বেছে নেবেন",
+    contentType: "research-guide",
     category: "research",
     categoryLabel: "Research",
     author: "Dr. Farhana Noor",
@@ -1765,6 +1801,7 @@ export const articles: Article[] = [
     slug: "literature-review-in-7-days",
     title: "The Literature Review, Decoded in 7 Days",
     titleBn: "৭ দিনে লিটারেচার রিভিউ",
+    contentType: "literature-review",
     category: "research",
     categoryLabel: "Research",
     author: "Rafi Chowdhury",

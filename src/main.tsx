@@ -24,9 +24,15 @@ const AuthPage = lazy(() => import("./pages/Auth.tsx"));
 const Dashboard = lazy(() => import("./pages/Dashboard.tsx"));
 const Resources = lazy(() => import("./pages/Resources.tsx"));
 const ResourceDetail = lazy(() => import("./pages/ResourceDetail.tsx"));
-const Insights = lazy(() => import("./pages/Insights.tsx"));
+const Research = lazy(() => import("./pages/Research.tsx"));
+const Blog = lazy(() => import("./pages/Blog.tsx"));
 const ArticlePage = lazy(() => import("./pages/ArticlePage.tsx"));
+const Courses = lazy(() => import("./pages/Courses.tsx"));
+const CourseDetail = lazy(() => import("./pages/CourseDetail.tsx"));
 const About = lazy(() => import("./pages/About.tsx"));
+const Contact = lazy(() => import("./pages/Contact.tsx"));
+const FAQ = lazy(() => import("./pages/FAQ.tsx"));
+const LegalPage = lazy(() => import("./pages/LegalPage.tsx"));
 const Checkout = lazy(() => import("./pages/Checkout.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 
@@ -97,10 +103,10 @@ class RootErrorBoundary extends React.Component<
 
 const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string);
 
-/** Redirect legacy /learn/:slug article URLs to /insights/:slug. */
-function LearnSlugRedirect() {
+/** Redirect legacy article URLs to the new blog/research structure. */
+function LegacyArticleRedirect({ toBase }: { toBase: string }) {
   const { slug } = useParams<{ slug: string }>();
-  return <Navigate to={`/insights/${slug ?? ""}`} replace />;
+  return <Navigate to={`${toBase}/${slug ?? ""}`} replace />;
 }
 
 function RouteSyncer() {
@@ -159,9 +165,21 @@ createRoot(document.getElementById("root")!).render(
                   />
                   <Route path="/resources" element={<Resources />} />
                   <Route path="/resources/:slug" element={<ResourceDetail />} />
-                  <Route path="/insights" element={<Insights />} />
-                  <Route path="/insights/:slug" element={<ArticlePage />} />
+                  <Route path="/research" element={<Research />} />
+                  <Route path="/research/:slug" element={<ArticlePage />} />
+                  <Route path="/blog" element={<Blog />} />
+                  <Route path="/blog/:slug" element={<ArticlePage />} />
+                  <Route path="/courses" element={<Courses />} />
+                  <Route path="/courses/:slug" element={<CourseDetail />} />
                   <Route path="/about" element={<About />} />
+                  <Route path="/contact" element={<Contact />} />
+                  <Route path="/faq" element={<FAQ />} />
+                  <Route path="/privacy" element={<LegalPage page="privacy" />} />
+                  <Route path="/terms" element={<LegalPage page="terms" />} />
+                  <Route path="/refund-policy" element={<LegalPage page="refund" />} />
+                  <Route path="/digital-product-policy" element={<LegalPage page="digital-product" />} />
+                  <Route path="/copyright" element={<LegalPage page="copyright" />} />
+                  <Route path="/disclaimer" element={<LegalPage page="disclaimer" />} />
                   <Route
                     path="/checkout"
                     element={
@@ -170,13 +188,16 @@ createRoot(document.getElementById("root")!).render(
                       </RequireAuth>
                     }
                   />
-                  {/* Legacy /learn URLs redirect to /insights */}
-                  <Route path="/learn" element={<Navigate to="/insights" replace />} />
+                  {/* Legacy URL redirects — Insights/Learn now live under /blog */}
+                  <Route path="/insights" element={<Navigate to="/blog" replace />} />
+                  <Route
+                    path="/insights/:slug"
+                    element={<LegacyArticleRedirect toBase="/blog" />}
+                  />
+                  <Route path="/learn" element={<Navigate to="/blog" replace />} />
                   <Route
                     path="/learn/:slug"
-                    element={
-                      <LearnSlugRedirect />
-                    }
+                    element={<LegacyArticleRedirect toBase="/blog" />}
                   />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
