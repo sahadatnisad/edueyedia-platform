@@ -117,6 +117,7 @@ export type ResearchContentType =
   | "research-discussion"
   | "literature-review"
   | "data-analysis"
+  | "academic-writing"
   | "research-ethics"
   | "publication"
   | "research-tools"

@@ -1,10 +1,17 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getCurrentUser } from "./users";
+import { resources } from "../data/catalog";
 
-// TEMP-UNBLOCK: temporarily decoupled from the catalog to verify Convex
-// compilation; restored to the catalog-backed price map immediately after.
-const PRICE_MAP = new Map<string, number>();
+/**
+ * Server-side price map, derived from the Edueyedia catalog. The client never
+ * decides how much to pay — every order total and paid-purchase check is
+ * computed here from the catalog, so a tampered price is always rejected.
+ * Free resources map to 0.
+ */
+const PRICE_MAP = new Map<string, number>(
+  resources.map((r) => [r.slug, r.kind === "free" ? 0 : r.price]),
+);
 
 /**
  * The signed-in user's library: every resource they own, newest first.
