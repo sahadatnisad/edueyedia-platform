@@ -47,7 +47,7 @@ export function PageMeta({
   description,
   path = "/",
   jsonLd,
-  image = "/og.svg",
+  image = "/og.png",
   type = "website",
 }: PageMetaProps) {
   useEffect(() => {
