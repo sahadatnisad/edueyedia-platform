@@ -3,14 +3,18 @@
 import { v } from "convex/values";
 import { action } from "./_generated/server";
 import { api } from "./_generated/api";
+import { createVlyIntegrations } from "@vly-ai/integrations";
 
 /* ------------------------------------------------------------------ */
 /*  Transactional email.                                               */
 /*                                                                    */
-/*  Provider: Resend when RESEND_API_KEY is configured. Without a key  */
-/*  the actions log clearly and return { sent: false } — the app never  */
-/*  claims an email was delivered. Set RESEND_API_KEY in the project's */
-/*  Keys tab to activate real delivery.                                */
+/*  Provider priority:                                                 */
+/*    1. Resend, when RESEND_API_KEY is configured (Keys tab).         */
+/*    2. The Freebuff VLY email gateway, when VLY_INTEGRATION_KEY is   */
+/*       present — it is auto-injected into every Freebuff project, so */
+/*       transactional mail works without any extra account setup.    */
+/*    3. Neither configured: the action logs clearly and returns       */
+/*       { sent: false } — the app never claims an email was sent.     */
 /*                                                                    */
 /*  Emails are scheduled server-side (ctx.scheduler.runAfter) after    */
 /*  verified events, so a payment can never be blocked on delivery and */
@@ -30,36 +34,57 @@ async function deliver(
   to: string,
   subject: string,
   html: string,
-): Promise<{ sent: boolean }> {
+): Promise<{ sent: boolean; provider: "resend" | "vly" | "none" }> {
   const key = process.env.RESEND_API_KEY ?? "";
-  if (!key) {
-    console.warn(
-      "[email] No RESEND_API_KEY configured — email NOT sent:",
-      subject,
-      "→",
-      to,
-    );
-    return { sent: false };
+  if (key) {
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${key}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: `${FROM_NAME} <no-reply@edueyedia.com>`,
+        to: [to],
+        subject,
+        html,
+        reply_to: SUPPORT_EMAIL,
+      }),
+    });
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      throw new Error(`Email delivery failed (${res.status}): ${body.slice(0, 200)}`);
+    }
+    return { sent: true, provider: "resend" };
   }
-  const res = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${key}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      from: `${FROM_NAME} <no-reply@edueyedia.com>`,
+
+  // Fallback: the Freebuff VLY email gateway (auto-injected key). The gateway
+  // supplies the sender domain, so we only set the reply-to address.
+  if (process.env.VLY_INTEGRATION_KEY) {
+    const vly = createVlyIntegrations({
+      deploymentToken: process.env.VLY_INTEGRATION_KEY,
+    });
+    const result = await vly.email.send({
       to: [to],
       subject,
       html,
-      reply_to: SUPPORT_EMAIL,
-    }),
-  });
-  if (!res.ok) {
-    const body = await res.text().catch(() => "");
-    throw new Error(`Email delivery failed (${res.status}): ${body.slice(0, 200)}`);
+      replyTo: SUPPORT_EMAIL,
+    });
+    if (!result.success) {
+      throw new Error(
+        `Email delivery failed: ${result.error ?? "VLY email gateway error"}`,
+      );
+    }
+    return { sent: true, provider: "vly" };
   }
-  return { sent: true };
+
+  console.warn(
+    "[email] No email provider configured (RESEND_API_KEY / VLY_INTEGRATION_KEY) — email NOT sent:",
+    subject,
+    "→",
+    to,
+  );
+  return { sent: false, provider: "none" };
 }
 
 function layout(title: string, bodyHtml: string): string {
