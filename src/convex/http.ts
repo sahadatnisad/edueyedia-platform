@@ -12,6 +12,169 @@ const JSON_HEADERS = {
   "Content-Type": "application/json",
 };
 
+const canonicalSite = () =>
+  (process.env.SITE_URL ?? "https://edueyedia.com").replace(/\/$/, "");
+
+/** robots.txt — the site is crawlable; sensitive paths stay authorized. */
+http.route({
+  path: "/robots.txt",
+  method: "GET",
+  handler: httpAction(async (_ctx) => {
+    const site = canonicalSite();
+    return new Response(
+      [
+        "User-agent: *",
+        "Allow: /",
+        "",
+        `Sitemap: ${site}/sitemap.xml`,
+        "",
+      ].join("\n"),
+      {
+        status: 200,
+        headers: {
+          "Content-Type": "text/plain; charset=utf-8",
+          "Cache-Control": "public, max-age=3600",
+        },
+      },
+    );
+  }),
+});
+
+/** sitemap.xml — only published public content, canonical URLs from SITE_URL. */
+http.route({
+  path: "/sitemap.xml",
+  method: "GET",
+  handler: httpAction(async (ctx) => {
+    const site = canonicalSite();
+    const content = await ctx.runQuery(api.content.allPublished);
+    const urls: string[] = [
+      site,
+      `${site}/research`,
+      `${site}/resources`,
+      `${site}/blog`,
+      `${site}/courses`,
+      `${site}/about`,
+      `${site}/contact`,
+      `${site}/faq`,
+      `${site}/privacy`,
+      `${site}/terms`,
+      `${site}/refund-policy`,
+      `${site}/digital-product-policy`,
+      `${site}/copyright`,
+      `${site}/disclaimer`,
+    ];
+    for (const r of content?.resources ?? []) {
+      urls.push(`${site}/resources/${r.slug}`);
+    }
+    for (const a of content?.research ?? []) {
+      urls.push(`${site}/research/${a.slug}`);
+    }
+    for (const b of content?.blog ?? []) {
+      urls.push(`${site}/blog/${b.slug}`);
+    }
+    for (const c of content?.courses ?? []) {
+      urls.push(`${site}/courses/${c.slug}`);
+    }
+
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${urls
+  .map(
+    (url) =>
+      `  <url><loc>${url.replace(/&/g, "&amp;")}</loc><changefreq>weekly</changefreq></url>`,
+  )
+  .join("\n")}
+</urlset>`;
+    return new Response(xml, {
+      status: 200,
+      headers: {
+        "Content-Type": "application/xml; charset=utf-8",
+        "Cache-Control": "public, max-age=3600",
+      },
+    });
+  }),
+});
+
+/**
+ * Protected file delivery.
+ *
+ * The client never receives a permanent public file URL. Instead it calls
+ * fileActions.getSecureDownload (resources) or getLessonFile (course
+ * lessons), which — after server-side entitlement checks — mint a single-use
+ * 5-minute token. This endpoint validates that token, verifies the caller's
+ * authenticated identity matches the token's owner, and only then streams
+ * the stored file and records the download.
+ *
+ * Denied cases: signed-out callers (401), another user's token (403),
+ * expired tokens, already-used tokens, and tokens replayed against a
+ * different resource/lesson (422).
+ */
+http.route({
+  path: "/files/download",
+  method: "GET",
+  handler: httpAction(async (ctx, request) => {
+    const url = new URL(request.url);
+    const token = url.searchParams.get("token") ?? "";
+    const kind = url.searchParams.get("kind") ?? "resource";
+    const resourceId = url.searchParams.get("resourceId") ?? undefined;
+    const courseId = url.searchParams.get("courseId") ?? undefined;
+    const lessonId = url.searchParams.get("lessonId") ?? undefined;
+
+    if (!token) {
+      return new Response(JSON.stringify({ error: "Missing download token" }), {
+        status: 400,
+        headers: JSON_HEADERS,
+      });
+    }
+
+    // Test A — a signed-out visitor has no identity and is denied.
+    const identity = await ctx.auth.getUserIdentity();
+    if (identity === null) {
+      return new Response(
+        JSON.stringify({ error: "Sign in to download this file." }),
+        { status: 401, headers: JSON_HEADERS },
+      );
+    }
+
+    try {
+      const file = await ctx.runMutation(api.files.consumeDownloadToken, {
+        token,
+        kind: kind as "resource" | "lesson",
+        resourceId,
+        courseId: courseId as Id<"courses"> | undefined,
+        lessonId: lessonId as Id<"courseLessons"> | undefined,
+        userId: identity.subject as Id<"users">,
+      });
+
+      const blob = await ctx.storage.get(file.storageId);
+      if (blob === null) {
+        return new Response(
+          JSON.stringify({ error: "The file could not be found." }),
+          { status: 404, headers: JSON_HEADERS },
+        );
+      }
+
+      const safeName = file.filename.replace(/[^\x20-\x7E]/g, "_").replace(/"/g, "");
+      return new Response(blob, {
+        status: 200,
+        headers: {
+          "Content-Type": file.mimeType || "application/pdf",
+          "Content-Disposition": `attachment; filename="${safeName}"`,
+          "Cache-Control": "private, no-store",
+          "X-Content-Type-Options": "nosniff",
+        },
+      });
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "This download link could not be used.";
+      return new Response(JSON.stringify({ error: message }), {
+        status: 403,
+        headers: JSON_HEADERS,
+      });
+    }
+  }),
+});
+
 /**
  * Server-side payment verification.
  *
@@ -126,10 +289,23 @@ http.route({
     }
 
     /* ----------------------------- Sandbox path --------------------------- */
+    // Development-only: completing an order without a real gateway must be
+    // explicitly enabled with ALLOW_SANDBOX_PAYMENTS=true. In production this
+    // path is unreachable (flag absent + live gateway configured).
+    if (process.env.ALLOW_SANDBOX_PAYMENTS !== "true") {
+      return new Response(
+        JSON.stringify({
+          ok: false,
+          error: "Demo checkout is disabled. Configure the payment gateway first.",
+        }),
+        { status: 501, headers: JSON_HEADERS },
+      );
+    }
+
     console.warn(
       "[payments/verify] Sandbox verification for order",
       orderId,
-      "— no live payment gateway configured.",
+      "— development-only path (ALLOW_SANDBOX_PAYMENTS=true).",
     );
 
     // The actual state change runs server-side in a mutation; the client

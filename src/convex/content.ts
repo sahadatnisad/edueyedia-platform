@@ -585,6 +585,20 @@ export const searchAll = query({
   },
 });
 
+/** Whether a lesson is a public preview (used by file access checks). */
+export const lessonIsPreview = query({
+  args: {
+    courseId: v.optional(v.id("courses")),
+    lessonId: v.optional(v.id("courseLessons")),
+  },
+  handler: async (ctx, { courseId, lessonId }) => {
+    if (courseId === undefined || lessonId === undefined) return false;
+    const lesson = await ctx.db.get(lessonId);
+    if (!lesson || lesson.courseId !== courseId) return false;
+    return lesson.isPreview === true;
+  },
+});
+
 /** Course lesson list for a course (public, published lessons only). */
 export const courseLessons = query({
   args: { courseId: v.optional(v.id("courses")) },

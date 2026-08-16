@@ -18,7 +18,7 @@ export function Newsletter() {
       await subscribe({ email });
       setStatus("done");
       toast.success("Welcome to Edueyedia", {
-        description: "Research insights and opportunities are on their way.",
+        description: "You're on the list — we'll write when there's something worth reading.",
       });
     } catch (err) {
       console.error(err);

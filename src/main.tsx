@@ -62,6 +62,7 @@ const AdminAuthorEditor = lazy(() =>
 );
 const AdminOrders = lazy(() => import("./pages/admin/AdminOrders.tsx"));
 const AdminSettings = lazy(() => import("./pages/admin/AdminSettings.tsx"));
+const AdminInbox = lazy(() => import("./pages/admin/AdminInbox.tsx"));
 
 // Simple loading fallback for route transitions
 function RouteLoading() {
@@ -265,6 +266,7 @@ createRoot(document.getElementById("root")!).render(
                     <Route path="courses/new" element={<AdminCourseEditor />} />
                     <Route path="courses/:id" element={<AdminCourseEditor />} />
                     <Route path="authors" element={<AdminAuthors />} />
+                    <Route path="inbox" element={<AdminInbox />} />
                     <Route path="authors/new" element={<AdminAuthorEditor />} />
                     <Route path="authors/:id" element={<AdminAuthorEditor />} />
                     <Route path="orders" element={<AdminOrders />} />

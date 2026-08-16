@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { api } from "./_generated/api";
 import { getCurrentUser } from "./users";
 
 /* ------------------------------------------------------------------ */
@@ -47,7 +48,29 @@ export const enrollInCourse = mutation({
       enrolledAt: Date.now(),
       status: "active",
     });
+
+    // Free enrollment confirmation (scheduled; never blocks enrollment).
+    if (user.email) {
+      await ctx.scheduler.runAfter(0, api.email.sendCourseEnrollment, {
+        courseId,
+        email: user.email,
+      });
+    }
     return { alreadyEnrolled: false as const, enrollmentId };
+  },
+});
+
+/** Minimal course info by id (for emails and lookups). */
+export const courseById = query({
+  args: { courseId: v.id("courses") },
+  handler: async (ctx, { courseId }) => {
+    const row = await ctx.db.get(courseId);
+    if (!row) return null;
+    return {
+      slug: row.slug,
+      title: row.title,
+      titleBn: row.titleBn,
+    };
   },
 });
 

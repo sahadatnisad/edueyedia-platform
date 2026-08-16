@@ -8,16 +8,23 @@ import {
 } from "react";
 import type { ReactNode } from "react";
 import type { CoverStyle, Resource } from "@/data/catalog";
+import type { Course } from "@/data/courses";
 
 export interface CartItem {
+  /** "resource" | "course" — unified commerce line item kind. */
+  itemType: "resource" | "course";
+  /** Resource slug or course slug (used as the cart key). */
   slug: string;
+  /** Course DB id — present only for course lines. */
+  courseId?: string;
   title: string;
   titleBn?: string;
   price: number;
   compareAt?: number;
   tag: string;
   cover: CoverStyle;
-  kind: Resource["kind"];
+  /** Resource kind (e.g. PDF/Guide) — resource lines only. */
+  kind?: Resource["kind"];
 }
 
 interface SiteContextValue {
@@ -27,6 +34,7 @@ interface SiteContextValue {
   setCartOpen: (v: boolean) => void;
   cart: CartItem[];
   addToCart: (r: Resource) => void;
+  addCourseToCart: (c: Course) => void;
   removeFromCart: (slug: string) => void;
   clearCart: () => void;
   cartCount: number;
@@ -42,7 +50,13 @@ function loadCart(): CartItem[] {
     const raw = localStorage.getItem(CART_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw) as CartItem[];
-    return Array.isArray(parsed) ? parsed : [];
+    if (!Array.isArray(parsed)) return [];
+    // Migrate pre-unified-cart entries (no itemType) to resource lines.
+    return parsed.map((item) =>
+      item.itemType === undefined
+        ? { ...item, itemType: "resource" as const }
+        : item,
+    );
   } catch {
     return [];
   }
@@ -67,6 +81,7 @@ export function SiteProvider({ children }: { children: ReactNode }) {
       return [
         ...prev,
         {
+          itemType: "resource" as const,
           slug: r.slug,
           title: r.title,
           titleBn: r.titleBn,
@@ -75,6 +90,26 @@ export function SiteProvider({ children }: { children: ReactNode }) {
           tag: r.tag,
           cover: r.cover,
           kind: r.kind,
+        },
+      ];
+    });
+  }, []);
+
+  const addCourseToCart = useCallback((c: Course) => {
+    setCart((prev) => {
+      if (prev.some((item) => item.slug === c.slug)) return prev;
+      return [
+        ...prev,
+        {
+          itemType: "course" as const,
+          slug: c.slug,
+          courseId: c.id,
+          title: c.title,
+          titleBn: c.titleBn,
+          price: c.price,
+          compareAt: c.compareAt,
+          tag: c.category,
+          cover: c.cover,
         },
       ];
     });
@@ -94,6 +129,7 @@ export function SiteProvider({ children }: { children: ReactNode }) {
       setCartOpen,
       cart,
       addToCart,
+      addCourseToCart,
       removeFromCart,
       clearCart,
       cartCount: cart.length,
@@ -104,6 +140,7 @@ export function SiteProvider({ children }: { children: ReactNode }) {
       cartOpen,
       cart,
       addToCart,
+      addCourseToCart,
       removeFromCart,
       clearCart,
     ],

@@ -2,7 +2,9 @@ import { useMemo } from "react";
 import { Link, useNavigate } from "react-router";
 import { toast } from "sonner";
 import { api } from "@/convex/_generated/api";
-import { useMutation, useQuery } from "convex/react";
+import { useAction, useMutation, useQuery } from "convex/react";
+import { useAuthToken } from "@convex-dev/auth/react";
+import { CONVEX_URL, fetchAndSaveDownload } from "@/lib/secureDownload";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Reveal } from "@/components/Reveal";
@@ -32,7 +34,8 @@ export default function Dashboard() {
   const orders = useQuery(api.library.myOrders);
   const enrollments = useMyEnrollments();
   const removeFromLibrary = useMutation(api.library.removeFromLibrary);
-  const recordDownload = useMutation(api.library.recordDownload);
+  const getSecureDownload = useAction(api.fileActions.getSecureDownload);
+  const authToken = useAuthToken();
   const navigate = useNavigate();
 
   // Resolve library/order items against published DB resources (legacy fallback).
@@ -88,13 +91,25 @@ export default function Dashboard() {
 
   const handleDownload = async (slug: string, title: string) => {
     try {
-      await recordDownload({ resourceId: slug });
-    } catch {
-      // Recording is best-effort; never block the download on it.
+      // Mint a single-use token (entitlement verified server-side), then
+      // stream the file through the protected HTTP action with our session.
+      const res = await getSecureDownload({ resourceId: slug });
+      await fetchAndSaveDownload({
+        convexUrl: CONVEX_URL,
+        authToken,
+        params: {
+          kind: "resource",
+          token: res.token,
+          resourceId: slug,
+        },
+        fallbackFilename: res.filename || `${slug}.pdf`,
+      });
+      toast.success("Download started", {
+        description: `${title} — check your downloads folder.`,
+      });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Download failed");
     }
-    toast.success("Download started", {
-      description: `${title} — check your downloads folder.`,
-    });
   };
 
   const initials =

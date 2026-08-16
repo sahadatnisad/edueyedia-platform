@@ -12,6 +12,7 @@ import {
   GraduationCap,
   Layers,
   PlayCircle,
+  ShoppingBag,
   Sparkles,
   Users,
 } from "lucide-react";
@@ -20,6 +21,7 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Reveal } from "@/components/Reveal";
 import { CourseCover } from "@/components/CourseCover";
+import { useSite } from "@/components/site/SiteContext";
 import { useAuth } from "@/hooks/use-auth";
 import {
   useAllContent,
@@ -39,6 +41,7 @@ export default function CourseDetail() {
   const content = useAllContent();
   const allCourses = content?.courses ?? legacyCourses;
   const enrollInCourse = useMutation(api.courses.enrollInCourse);
+  const { addCourseToCart, setCartOpen } = useSite();
   // Enrollment state only applies to DB courses (legacy fallback has no id).
   const enrollment = useCourseEnrollment(course?.id);
   const enrolled = enrollment?.enrolled === true;
@@ -77,6 +80,11 @@ export default function CourseDetail() {
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not enroll.");
     }
+  };
+
+  const handleAddToCart = () => {
+    addCourseToCart(course);
+    setCartOpen(true);
   };
 
   return (
@@ -202,15 +210,16 @@ export default function CourseDetail() {
                     <>
                       <button
                         type="button"
-                        disabled
-                        className="inline-flex h-12 cursor-not-allowed items-center gap-2 rounded-full bg-navy/70 px-8 text-sm font-semibold text-white/70 dark:bg-teal/60 dark:text-navy-deep/80"
+                        onClick={handleAddToCart}
+                        className="inline-flex h-12 items-center gap-2 rounded-full bg-navy px-8 text-sm font-semibold text-white shadow-[0_14px_30px_-12px_rgba(21,34,56,0.5)] transition-all hover:-translate-y-0.5 hover:bg-navy/90 dark:bg-teal dark:text-navy-deep"
                       >
-                        Enroll Now
+                        <ShoppingBag className="size-4" />
+                        Enroll Now · ৳{course.price}
                         <ArrowRight className="size-4" />
                       </button>
                       <p className="font-bangla max-w-xs text-xs leading-relaxed text-ink-soft dark:text-slate-400">
-                        পেইড কোর্সের এনরোলমেন্ট শীঘ্রই চালু হচ্ছে — এই মুহূর্তে
-                        কোনো পেমেন্ট নেওয়া হয় না।
+                        এনরোলমেন্ট চেকআউটের মাধ্যমে সম্পন্ন হয় — পেমেন্ট নিশ্চিত
+                        হলে কোর্সটি My Courses-এ আনলক হবে।
                       </p>
                     </>
                   )}

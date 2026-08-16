@@ -375,10 +375,12 @@ const schema = defineSchema(
       .index("by_user", ["userId"])
       .index("by_resource", ["resourceId"]),
 
-    // Orders — created at checkout, unlocked only after server-side payment verification
+    // Orders — created at checkout, unlocked only after server-side payment verification.
+    // One order can contain both resources and paid courses (unified commerce).
     orders: defineTable({
       userId: v.id("users"),
       resourceIds: v.array(v.string()),
+      courseIds: v.optional(v.array(v.id("courses"))),
       contactName: v.string(),
       contactEmail: v.string(),
       contactMobile: v.optional(v.string()),
@@ -399,10 +401,50 @@ const schema = defineSchema(
     // Line items for every order (snapshot of what was purchased).
     orderItems: defineTable({
       orderId: v.id("orders"),
-      resourceId: v.string(),
+      kind: v.optional(v.union(v.literal("resource"), v.literal("course"))),
+      resourceId: v.optional(v.string()),
+      courseId: v.optional(v.id("courses")),
       title: v.string(),
       price: v.number(),
     }).index("by_order", ["orderId"]),
+
+    /* ------------------------------------------------------------------ */
+    /*  Files: secure PDF storage for resources                            */
+    /* ------------------------------------------------------------------ */
+
+    // Real uploaded files for downloadable resources. Files live in Convex
+    // storage (private, never in public/); rows here are the metadata and
+    // the version history (replacements retire the previous active file).
+    resourceFiles: defineTable({
+      resourceId: v.string(), // resource slug
+      storageId: v.id("_storage"),
+      filename: v.string(),
+      displayFilename: v.string(),
+      mimeType: v.string(),
+      fileSize: v.number(),
+      version: v.number(),
+      kind: v.union(v.literal("main"), v.literal("preview")),
+      status: v.union(v.literal("active"), v.literal("replaced"), v.literal("removed")),
+      uploadedBy: v.optional(v.id("users")),
+      uploadedAt: v.number(),
+    }).index("by_resource", ["resourceId", "status"]),
+
+    // Contact form submissions — stored, never lost.
+    contactMessages: defineTable({
+      name: v.string(),
+      email: v.string(),
+      topic: v.string(),
+      message: v.string(),
+      status: v.union(v.literal("new"), v.literal("read"), v.literal("replied")),
+      createdAt: v.number(),
+    }).index("by_created", ["createdAt"]),
+
+    // Fixed-window rate limiting buckets (per user / email / ip key).
+    rateLimits: defineTable({
+      key: v.string(),
+      windowStart: v.number(),
+      count: v.number(),
+    }).index("by_key", ["key"]),
 
     // Course enrollments — real counts only, never fabricated.
     enrollments: defineTable({
@@ -432,6 +474,26 @@ const schema = defineSchema(
       resourceId: v.string(),
       downloadedAt: v.number(),
     }).index("by_user", ["userId"]),
+
+    // Single-use, expiring download tokens. A token is minted only after
+    // entitlement is verified server-side, and the /files/download HTTP
+    // action re-checks the token (valid → unused → unexpired → owned by the
+    // caller) before streaming the file.
+    downloadTokens: defineTable({
+      token: v.string(),
+      kind: v.union(v.literal("resource"), v.literal("lesson")),
+      resourceId: v.optional(v.string()),
+      courseId: v.optional(v.id("courses")),
+      lessonId: v.optional(v.id("courseLessons")),
+      userId: v.id("users"),
+      storageId: v.id("_storage"),
+      filename: v.string(),
+      fileSize: v.optional(v.number()),
+      mimeType: v.string(),
+      expiresAt: v.number(),
+      usedAt: v.optional(v.number()),
+      createdAt: v.number(),
+    }).index("by_token", ["token"]),
 
     /* ------------------------------------------------------------------ */
     /*  Platform                                                           */

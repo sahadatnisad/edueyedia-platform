@@ -2,7 +2,9 @@ import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { toast } from "sonner";
 import { api } from "@/convex/_generated/api";
-import { useMutation, useQuery } from "convex/react";
+import { useAction, useMutation, useQuery } from "convex/react";
+import { useAuthToken } from "@convex-dev/auth/react";
+import { CONVEX_URL, fetchAndSaveDownload } from "@/lib/secureDownload";
 import { cn } from "@/lib/utils";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
@@ -25,6 +27,7 @@ import {
   ArrowRight,
   BadgeCheck,
   BookOpen,
+  BookMarked,
   CalendarDays,
   Check,
   Download,
@@ -63,8 +66,11 @@ export default function ResourceDetail() {
   const { addToCart, setCartOpen } = useSite();
   const { isAuthenticated } = useAuth();
   const purchase = useMutation(api.library.purchase);
+  const getSecureDownload = useAction(api.fileActions.getSecureDownload);
+  const authToken = useAuthToken();
   const owns = useQuery(api.library.ownsResource, { resourceId: slug ?? "" });
   const navigate = useNavigate();
+  const [downloading, setDownloading] = useState(false);
 
   if (!resource) {
     return (
@@ -101,6 +107,30 @@ export default function ResourceDetail() {
     toast.success("Added to cart", {
       description: `${resource.title} is ready to check out.`,
     });
+  };
+
+  const handleDownload = async () => {
+    setDownloading(true);
+    try {
+      const res = await getSecureDownload({ resourceId: resource.slug });
+      await fetchAndSaveDownload({
+        convexUrl: CONVEX_URL,
+        authToken,
+        params: {
+          kind: "resource",
+          token: res.token,
+          resourceId: resource.slug,
+        },
+        fallbackFilename: res.filename || `${resource.slug}.pdf`,
+      });
+      toast.success("Download started", {
+        description: `${resource.title} — check your downloads folder.`,
+      });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Download failed");
+    } finally {
+      setDownloading(false);
+    }
   };
 
   const handleClaim = async () => {
@@ -264,13 +294,25 @@ export default function ResourceDetail() {
 
                   <div className="mt-5 flex flex-col gap-2.5">
                     {owned ? (
-                      <Button
-                        size="lg"
-                        className="w-full rounded-full bg-teal hover:bg-teal/90 dark:bg-teal dark:text-navy-deep"
-                        onClick={() => navigate("/dashboard")}
-                      >
-                        <Check className="size-4" /> In your library — open it
-                      </Button>
+                      <>
+                        <Button
+                          size="lg"
+                          className="w-full rounded-full bg-teal hover:bg-teal/90 dark:bg-teal dark:text-navy-deep"
+                          onClick={handleDownload}
+                          disabled={downloading}
+                        >
+                          <Download className="size-4" />
+                          {downloading ? "Preparing…" : "Download PDF"}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="lg"
+                          className="w-full rounded-full"
+                          onClick={() => navigate("/dashboard")}
+                        >
+                          <BookMarked className="size-4" /> Open my library
+                        </Button>
+                      </>
                     ) : free ? (
                       <Button
                         size="lg"

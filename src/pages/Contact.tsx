@@ -1,9 +1,12 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { Link } from "react-router";
+import { useMutation } from "convex/react";
+import { api } from "@/convex/_generated/api";
 import {
   ArrowRight,
   BookOpen,
+  CheckCircle2,
   Clock,
   FileText,
   Mail,
@@ -58,15 +61,32 @@ export default function Contact() {
   const [email, setEmail] = useState("");
   const [topic, setTopic] = useState("Order & delivery");
   const [message, setMessage] = useState("");
+  // Honeypot — hidden from humans, filled by bots.
+  const [website, setWebsite] = useState("");
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const submitContact = useMutation(api.contact.submitContact);
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !email.trim() || !message.trim()) return;
-    const subject = encodeURIComponent(`[${topic}] ${name} — Edueyedia contact`);
-    const body = encodeURIComponent(
-      `Name: ${name}\nEmail: ${email}\nTopic: ${topic}\n\n${message}`,
-    );
-    window.location.href = `mailto:hello@edueyedia.com?subject=${subject}&body=${body}`;
+    setSending(true);
+    setError(null);
+    try {
+      await submitContact({
+        name,
+        email,
+        topic,
+        message,
+        website: website || undefined,
+      });
+      setSent(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not send — try again.");
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -156,7 +176,45 @@ export default function Contact() {
                     </div>
                   </div>
 
+                  {sent ? (
+                    <div className="mt-7 flex flex-col items-start gap-3 rounded-3xl border border-teal/20 bg-teal/5 p-6 dark:border-teal/30 dark:bg-teal/10">
+                      <span className="flex size-12 items-center justify-center rounded-full bg-teal/10">
+                        <CheckCircle2 className="size-6 text-teal dark:text-teal-bright" />
+                      </span>
+                      <h3 className="font-serif text-xl text-navy dark:text-slate-100">
+                        Message received
+                      </h3>
+                      <p className="font-bangla text-sm leading-relaxed text-ink-soft dark:text-slate-300">
+                        ধন্যবাদ! আপনার বার্তা আমাদের কাছে পৌঁছেছে — আমরা দ্রুত
+                        উত্তর দেব।
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSent(false);
+                          setName("");
+                          setEmail("");
+                          setMessage("");
+                        }}
+                        className="link-underline text-sm font-semibold text-teal dark:text-teal-bright"
+                      >
+                        Send another message
+                      </button>
+                    </div>
+                  ) : (
                   <form onSubmit={handleSubmit} className="mt-7 flex flex-col gap-5">
+                    {/* Honeypot — invisible to humans, catches bots. */}
+                    <div className="absolute -left-[9999px] top-auto h-px w-px overflow-hidden" aria-hidden="true">
+                      <label htmlFor="contact-website">Leave this field empty</label>
+                      <input
+                        id="contact-website"
+                        type="text"
+                        tabIndex={-1}
+                        autoComplete="off"
+                        value={website}
+                        onChange={(e) => setWebsite(e.target.value)}
+                      />
+                    </div>
                     <div className="grid gap-5 sm:grid-cols-2">
                       <div>
                         <label
@@ -230,20 +288,26 @@ export default function Contact() {
                         className="mt-1.5 w-full resize-none rounded-2xl border border-hairline bg-ivory/60 px-4 py-3.5 text-sm leading-relaxed text-navy placeholder:text-ink-soft/70 focus:border-teal focus:ring-2 focus:ring-teal/30 focus:outline-none dark:border-white/15 dark:bg-white/5 dark:text-slate-100 dark:placeholder:text-slate-500"
                       />
                     </div>
+                    {error && (
+                      <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-xs font-medium text-red-600 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400">
+                        {error}
+                      </p>
+                    )}
                     <button
                       type="submit"
-                      className="group inline-flex h-12 w-fit items-center gap-2 rounded-full bg-navy px-7 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-navy/90 dark:bg-teal dark:text-navy-deep dark:hover:bg-teal-bright"
+                      disabled={sending}
+                      className="group inline-flex h-12 w-fit items-center gap-2 rounded-full bg-navy px-7 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-navy/90 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-teal dark:text-navy-deep dark:hover:bg-teal-bright"
                     >
                       <Send className="size-4" />
-                      Send message
+                      {sending ? "Sending…" : "Send message"}
                       <ArrowRight className="size-4 transition-transform duration-300 group-hover:translate-x-1" />
                     </button>
                     <p className="text-xs leading-relaxed text-ink-soft dark:text-slate-500">
-                      This form opens your email app with the message pre-filled.
-                      We reply from hello@edueyedia.com — if you do not see a
-                      reply, check spam.
+                      Your message is stored securely and we reply from
+                      hello@edueyedia.com — if you do not see a reply, check spam.
                     </p>
                   </form>
+                  )}
                 </div>
               </Reveal>
             </div>

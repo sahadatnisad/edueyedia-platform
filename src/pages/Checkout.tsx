@@ -3,11 +3,12 @@ import type { FormEvent } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { toast } from "sonner";
 import { api } from "@/convex/_generated/api";
-import { useAction, useMutation } from "convex/react";
+import { useAction, useMutation, useQuery } from "convex/react";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Reveal } from "@/components/Reveal";
 import { BookCover } from "@/components/BookCover";
+import { CourseCover } from "@/components/CourseCover";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,6 +16,7 @@ import { useSite } from "@/components/site/SiteContext";
 import { useAuth } from "@/hooks/use-auth";
 import { useResourcesBySlugs } from "@/hooks/use-content";
 import { getResource } from "@/data/catalog";
+import type { Course } from "@/data/courses";
 import {
   ArrowLeft,
   ArrowRight,
@@ -46,6 +48,8 @@ export default function Checkout() {
   const createOrder = useMutation(api.library.createOrder);
   const completeOrder = useMutation(api.library.completeVerifiedOrder);
   const createPaymentSession = useAction(api.payments.createPaymentSession);
+  const gatewayStatus = useQuery(api.gateway.gatewayStatus);
+  const gatewayConfigured = gatewayStatus?.configured === true;
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -56,18 +60,44 @@ export default function Checkout() {
   const [completed, setCompleted] = useState<CompletedOrder | null>(null);
   const returnVerified = useRef(false);
 
-  // Resolve cart items against published DB resources (legacy fallback).
+  // Resolve cart lines: resources against published DB rows (legacy fallback),
+  // courses directly from the line (the server re-prices everything anyway).
   const dbResources = useResourcesBySlugs(cart.map((i) => i.slug));
   const items = useMemo(
     () =>
-      cart
-        .map((item) => ({
+      cart.map((item) => {
+        if (item.itemType === "course") {
+          const course: Course = {
+            id: item.courseId,
+            slug: item.slug,
+            title: item.title,
+            titleBn: item.titleBn ?? item.title,
+            category: item.tag,
+            categoryBn: item.tag,
+            level: "All levels",
+            duration: "Self-paced",
+            lessonCount: 0,
+            isFree: item.price <= 0,
+            price: item.price,
+            compareAt: item.compareAt,
+            status: "published",
+            shortDescription: "",
+            description: "",
+            whatYouLearn: [],
+            audience: [],
+            cover: item.cover,
+            modules: [],
+          };
+          return { item, resource: undefined, course };
+        }
+        return {
           item,
+          course: undefined,
           resource:
             dbResources?.find((r) => r.slug === item.slug) ??
             getResource(item.slug),
-        }))
-        .filter((x) => x.resource),
+        };
+      }),
     [cart, dbResources],
   );
 
@@ -101,13 +131,20 @@ export default function Checkout() {
     setPlacing(true);
     try {
       // 1. Create the order — the total is computed server-side from the
-      //    catalog, never from the client.
+      //    catalog, never from the client. Unified commerce: one order can
+      //    hold paid resources and paid courses.
       const orderId = await createOrder({
-        resourceIds: cart.map((item) => item.slug),
+        items: cart.map((item) => ({
+          kind: item.itemType as "resource" | "course",
+          id:
+            item.itemType === "course"
+              ? (item.courseId ?? item.slug)
+              : item.slug,
+        })),
         contactName: trimmedName,
         contactEmail: trimmedEmail,
         contactMobile: mobile.trim() || undefined,
-        gateway: "sandbox",
+        gateway: gatewayConfigured ? "sslcommerz" : "sandbox",
       });
 
       // 2. Start the payment session. When SSLCommerz credentials are not
@@ -528,10 +565,17 @@ export default function Checkout() {
                       </span>
                     </div>
 
-                    <p className="font-bangla mt-4 rounded-2xl border border-gold/30 bg-gold/10 px-4 py-3 text-[13px] leading-relaxed text-[#7c5c16] dark:border-gold/30 dark:bg-gold/10 dark:text-gold">
-                      ডেমো চেকআউট — কোনো প্রকৃত অর্থ লেনদেন হচ্ছে না। লাইভ পেমেন্ট
-                      গেটওয়ে সংযুক্ত হলে bKash, Nagad ও কার্ড পেমেন্ট চালু হবে।
-                    </p>
+                    {!gatewayConfigured ? (
+                      <p className="font-bangla mt-4 rounded-2xl border border-gold/30 bg-gold/10 px-4 py-3 text-[13px] leading-relaxed text-[#7c5c16] dark:border-gold/30 dark:bg-gold/10 dark:text-gold">
+                        ডেমো চেকআউট — কোনো প্রকৃত অর্থ লেনদেন হচ্ছে না। লাইভ পেমেন্ট
+                        গেটওয়ে সংযুক্ত হলে bKash, Nagad ও কার্ড পেমেন্ট চালু হবে।
+                      </p>
+                    ) : (
+                      <p className="mt-4 rounded-2xl border border-teal/20 bg-teal/5 px-4 py-3 text-[13px] leading-relaxed text-teal dark:border-teal/30 dark:bg-teal/10 dark:text-teal-bright">
+                        You'll be redirected to the secure payment gateway to
+                        complete the order with bKash, Nagad or card.
+                      </p>
+                    )}
 
                     <Button
                       type="submit"
@@ -582,38 +626,47 @@ export default function Checkout() {
                   </div>
 
                   <ul className="mt-5 flex max-h-[26rem] flex-col gap-4 overflow-y-auto pr-1">
-                    {items.map(({ item, resource }) => (
-                      <li key={item.slug} className="flex gap-3.5">
-                        <Link
-                          to={`/resources/${item.slug}`}
-                          className="w-14 shrink-0"
-                        >
-                          <BookCover resource={resource!} compact />
-                        </Link>
-                        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                          <Link
-                            to={`/resources/${item.slug}`}
-                            className="line-clamp-2 font-serif text-[13px] leading-snug font-semibold text-navy transition-colors hover:text-teal dark:text-slate-100 dark:hover:text-teal-bright"
-                          >
-                            {item.titleBn ?? item.title}
+                    {items.map(({ item, resource, course }) => {
+                      const isCourse = item.itemType === "course";
+                      const destination = isCourse
+                        ? `/courses/${item.slug}`
+                        : `/resources/${item.slug}`;
+                      return (
+                        <li key={item.slug} className="flex gap-3.5">
+                          <Link to={destination} className="w-14 shrink-0">
+                            {course ? (
+                              <CourseCover course={course} className="rounded-xl" />
+                            ) : resource ? (
+                              <BookCover resource={resource} compact />
+                            ) : (
+                              <div className="aspect-[4/5] rounded-xl bg-muted" />
+                            )}
                           </Link>
-                          <p className="text-[10px] font-semibold tracking-[0.14em] text-ink-soft uppercase dark:text-slate-400">
-                            {item.tag}
-                          </p>
-                          <p className="mt-auto font-serif text-base font-semibold text-navy dark:text-slate-100">
-                            {formatTaka(item.price)}
-                          </p>
-                        </div>
-                        <button
-                          type="button"
-                          aria-label={`Remove ${item.title}`}
-                          className="self-start rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-destructive"
-                          onClick={() => removeFromCart(item.slug)}
-                        >
-                          <Trash2 className="size-4" />
-                        </button>
-                      </li>
-                    ))}
+                          <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                            <Link
+                              to={destination}
+                              className="line-clamp-2 font-serif text-[13px] leading-snug font-semibold text-navy transition-colors hover:text-teal dark:text-slate-100 dark:hover:text-teal-bright"
+                            >
+                              {item.titleBn ?? item.title}
+                            </Link>
+                            <p className="text-[10px] font-semibold tracking-[0.14em] text-ink-soft uppercase dark:text-slate-400">
+                              {item.tag} · {isCourse ? "Course" : "Digital"}
+                            </p>
+                            <p className="mt-auto font-serif text-base font-semibold text-navy dark:text-slate-100">
+                              {formatTaka(item.price)}
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            aria-label={`Remove ${item.title}`}
+                            className="self-start rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-destructive"
+                            onClick={() => removeFromCart(item.slug)}
+                          >
+                            <Trash2 className="size-4" />
+                          </button>
+                        </li>
+                      );
+                    })}
                   </ul>
 
                   <div className="mt-6 flex flex-col gap-2.5 border-t border-hairline pt-5 dark:border-white/10">

@@ -271,6 +271,18 @@ export function AdminCourseEditor() {
     setForm((f) => ({ ...f, [k]: v }));
 
   const handleSave = async () => {
+    // Publish guard: never publish a course with no meaningful lesson content.
+    const hasRealLesson = modules.some((mod) =>
+      mod.lessons.some(
+        (l) => l.title.trim().length > 0 && l.content.trim().length > 0,
+      ),
+    );
+    if (form.status === "published" && !hasRealLesson) {
+      toast.error(
+        "Add at least one lesson with real content before publishing a course.",
+      );
+      return;
+    }
     setSaving(true);
     try {
       const data = {

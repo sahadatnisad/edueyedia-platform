@@ -1148,6 +1148,38 @@ export const updateSiteSetting = mutation({
   },
 });
 
+/* --------------------------- contact inbox ------------------------- */
+
+export const listContactMessages = query({
+  args: {},
+  handler: async (ctx) => {
+    await requireAdminQuery(ctx);
+    const rows = await ctx.db
+      .query("contactMessages")
+      .withIndex("by_created")
+      .order("desc")
+      .take(100);
+    return rows.map((r) => ({
+      _id: r._id,
+      name: r.name,
+      email: r.email,
+      topic: r.topic,
+      message: r.message,
+      status: r.status,
+      createdAt: r.createdAt,
+    }));
+  },
+});
+
+export const markContactRead = mutation({
+  args: { id: v.id("contactMessages") },
+  handler: async (ctx, { id }) => {
+    await requireAdmin(ctx);
+    await ctx.db.patch(id, { status: "read" });
+    return id;
+  },
+});
+
 /* ---------------------------- audit log ----------------------------- */
 
 export const recentAuditLogs = query({

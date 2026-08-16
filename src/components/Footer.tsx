@@ -1,5 +1,5 @@
 import { Link } from "react-router";
-import { Facebook, Instagram, Linkedin, Youtube } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
 const COLUMNS: { title: string; links: { label: string; to: string }[] }[] = [
   {
@@ -39,12 +39,10 @@ const COLUMNS: { title: string; links: { label: string; to: string }[] }[] = [
   },
 ];
 
-const SOCIALS = [
-  { label: "Facebook", icon: Facebook, href: "https://facebook.com" },
-  { label: "LinkedIn", icon: Linkedin, href: "https://linkedin.com" },
-  { label: "YouTube", icon: Youtube, href: "https://youtube.com" },
-  { label: "Instagram", icon: Instagram, href: "https://instagram.com" },
-];
+// Social profiles are linked only when they actually exist — no placeholder
+// links to facebook.com / linkedin.com / etc. (see pre-launch checklist #53).
+// Add real Edueyedia profile URLs here when they go live.
+const SOCIALS: { label: string; icon: LucideIcon; href: string }[] = [];
 
 export function Footer() {
   return (

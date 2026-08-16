@@ -1,16 +1,16 @@
 {
-  "name": "freebuff.com application",
-  "short_name": "freebuff.com",
-  "description": "freebuff.com application",
+  "name": "Edueyedia — Research. Learn. Advance.",
+  "short_name": "Edueyedia",
+  "description": "গবেষণা, শিক্ষা ও সুযোগের বিশ্বস্ত ডিজিটাল প্ল্যাটফর্ম — research, resources, blog and courses in Bangla.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#000000",
+  "background_color": "#FAFAF6",
+  "theme_color": "#152238",
   "icons": [
     {
-      "src": "/logo.png",
+      "src": "/logo.svg",
       "sizes": "any",
-      "type": "image/png",
+      "type": "image/svg+xml",
       "purpose": "any maskable"
     }
   ]

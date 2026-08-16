@@ -1,5 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query, MutationCtx } from "./_generated/server";
+import { api } from "./_generated/api";
+import { Id } from "./_generated/dataModel";
 import { getCurrentUser } from "./users";
 
 /**
@@ -18,15 +20,13 @@ async function catalogPrice(ctx: MutationCtx, resourceId: string): Promise<numbe
   return row.isFree ? 0 : row.price;
 }
 
-async function computeTotal(
+async function coursePrice(
   ctx: MutationCtx,
-  resourceIds: string[],
+  courseId: Id<"courses">,
 ): Promise<number> {
-  let total = 0;
-  for (const id of resourceIds) {
-    total += await catalogPrice(ctx, id);
-  }
-  return total;
+  const row = await ctx.db.get(courseId);
+  if (!row) return 0;
+  return row.isFree ? 0 : row.price;
 }
 
 /**
@@ -130,20 +130,31 @@ export const purchase = mutation({
         orderId,
       });
     }
+
+    // A claimed free resource is immediately downloadable — confirm it by email
+    // (scheduled so the mutation never blocks on delivery).
+    if (kind === "free" && resourceIds.length === 1) {
+      await ctx.scheduler.runAfter(0, api.email.sendResourceReady, {
+        resourceId: resourceIds[0],
+        email: user.email ?? "",
+      });
+    }
   },
 });
 
 /**
- * Create a pending order at checkout. The total is computed server-side from
- * the catalog — the client never decides how much to pay.
- *
- * The order stays `pending` until the payment gateway verifies the payment
- * server-side (see convex/http.ts gateway callbacks), at which point
- * `markOrderPaid` unlocks the resources into the customer's library.
+ * Create a pending order at checkout. Unified commerce: one order can hold
+ * paid resources and/or paid courses. Every price is recomputed server-side
+ * from the database — the client never decides the total, discount or items.
  */
 export const createOrder = mutation({
   args: {
-    resourceIds: v.array(v.string()),
+    items: v.array(
+      v.object({
+        kind: v.union(v.literal("resource"), v.literal("course")),
+        id: v.string(),
+      }),
+    ),
     contactName: v.string(),
     contactEmail: v.string(),
     contactMobile: v.optional(v.string()),
@@ -154,21 +165,76 @@ export const createOrder = mutation({
     if (user === null) {
       throw new Error("You must be signed in to place an order.");
     }
-    if (args.resourceIds.length === 0) {
+    if (args.items.length === 0) {
       throw new Error("Your order is empty.");
     }
     if (!args.contactName.trim() || !args.contactEmail.trim()) {
       throw new Error("Please provide your name and email.");
     }
 
-    const total = await computeTotal(ctx, args.resourceIds);
+    const resourceIds: string[] = [];
+    const courseIds: Id<"courses">[] = [];
+    const lineItems: {
+      kind: "resource" | "course";
+      resourceId?: string;
+      courseId?: Id<"courses">;
+      title: string;
+      price: number;
+    }[] = [];
+
+    let total = 0;
+    for (const item of args.items) {
+      if (item.kind === "resource") {
+        const row = await ctx.db
+          .query("resources")
+          .withIndex("slug", (q) => q.eq("slug", item.id))
+          .first();
+        if (!row || row.status !== "published") {
+          throw new Error("A resource in your order is no longer available.");
+        }
+        if (row.isFree) {
+          throw new Error("Free resources do not need checkout — claim them directly.");
+        }
+        const price = row.price;
+        total += price;
+        resourceIds.push(row.slug);
+        lineItems.push({
+          kind: "resource",
+          resourceId: row.slug,
+          title: row.title,
+          price,
+        });
+      } else {
+        const course = await ctx.db.get(item.id as Id<"courses">);
+        if (!course || course.status === "archived") {
+          throw new Error("A course in your order is no longer available.");
+        }
+        if (course.status !== "published") {
+          throw new Error("This course is not open for enrollment yet.");
+        }
+        if (course.isFree) {
+          throw new Error("Free courses do not need checkout — start them directly.");
+        }
+        const price = course.price;
+        total += price;
+        courseIds.push(course._id);
+        lineItems.push({
+          kind: "course",
+          courseId: course._id,
+          title: course.titleBn || course.title,
+          price,
+        });
+      }
+    }
+
     if (total <= 0) {
-      throw new Error("Your order must contain paid resources.");
+      throw new Error("Your order must contain paid items.");
     }
 
     const orderId = await ctx.db.insert("orders", {
       userId: user._id,
-      resourceIds: args.resourceIds,
+      resourceIds,
+      courseIds,
       contactName: args.contactName.trim(),
       contactEmail: args.contactEmail.trim().toLowerCase(),
       contactMobile: args.contactMobile?.trim(),
@@ -178,18 +244,14 @@ export const createOrder = mutation({
       createdAt: Date.now(),
     });
 
-    // Record line items (snapshot) for the order.
-    for (const resourceId of args.resourceIds) {
-      const row = await ctx.db
-        .query("resources")
-        .withIndex("slug", (q) => q.eq("slug", resourceId))
-        .first();
-      if (!row) continue;
+    for (const line of lineItems) {
       await ctx.db.insert("orderItems", {
         orderId,
-        resourceId,
-        title: row.title,
-        price: row.isFree ? 0 : row.price,
+        kind: line.kind,
+        resourceId: line.resourceId,
+        courseId: line.courseId,
+        title: line.title,
+        price: line.price,
       });
     }
 
@@ -230,11 +292,20 @@ export const completeVerifiedOrder = mutation({
     const storeId = process.env.SSLCOMMERZ_STORE_ID ?? "";
     const storePassword = process.env.SSLCOMMERZ_STORE_PASSWORD ?? "";
     const gatewayConfigured = Boolean(storeId && storePassword);
+    // Demo sandbox completion is a development-only escape hatch — it must be
+    // explicitly enabled with ALLOW_SANDBOX_PAYMENTS=true and can never run
+    // when a real gateway is configured.
+    const sandboxAllowed = process.env.ALLOW_SANDBOX_PAYMENTS === "true";
 
     if (gateway === "sandbox") {
       if (gatewayConfigured) {
         throw new Error(
           "Sandbox orders are disabled when a live gateway is configured.",
+        );
+      }
+      if (!sandboxAllowed) {
+        throw new Error(
+          "Demo checkout is disabled. Configure the payment gateway first.",
         );
       }
     } else if (gateway === "sslcommerz") {
@@ -272,11 +343,34 @@ export const completeVerifiedOrder = mutation({
         userId: order.userId,
         resourceId,
         kind: "paid",
-        pricePaid: order.total / order.resourceIds.length,
+        pricePaid: order.total / Math.max(order.resourceIds.length + (order.courseIds?.length ?? 0), 1),
         purchasedAt: now,
         orderId: order._id,
       });
     }
+
+    // Paid courses become enrollments — one per course, idempotent.
+    const enrolled = await ctx.db
+      .query("enrollments")
+      .withIndex("by_user", (q) => q.eq("userId", order.userId))
+      .collect();
+    const enrolledCourseIds = new Set(
+      enrolled.map((e) => e.courseId as string),
+    );
+    for (const courseId of order.courseIds ?? []) {
+      if (enrolledCourseIds.has(courseId as string)) continue;
+      await ctx.db.insert("enrollments", {
+        userId: order.userId,
+        courseId,
+        enrolledAt: now,
+        status: "active",
+      });
+    }
+
+    // One confirmation email per paid order (covers resources + courses).
+    await ctx.scheduler.runAfter(0, api.email.sendOrderConfirmation, {
+      orderId: order._id,
+    });
 
     return {
       ok: true as const,
@@ -317,6 +411,21 @@ export const myOrders = query({
 });
 
 /**
+ * Server-side total for a set of resource slugs — the authoritative price
+ * used to reject under-paid purchases.
+ */
+async function computeTotal(
+  ctx: MutationCtx,
+  resourceIds: string[],
+): Promise<number> {
+  let total = 0;
+  for (const resourceId of resourceIds) {
+    total += await catalogPrice(ctx, resourceId);
+  }
+  return total;
+}
+
+/**
  * Record that the signed-in user downloaded a resource they own. Used for
  * honest platform analytics (the downloads table, never fabricated counts).
  */
@@ -339,7 +448,6 @@ export const recordDownload = mutation({
   },
 });
 
-/** Remove a resource from the user's library. */
 /** SHA-256 hex digest — WebCrypto is available in every Convex runtime. */
 async function sha256Hex(input: string): Promise<string> {
   const data = new TextEncoder().encode(input);

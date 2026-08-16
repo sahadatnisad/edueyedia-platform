@@ -12,8 +12,10 @@ import { useSite } from "@/components/site/SiteContext";
 import { useAuth } from "@/hooks/use-auth";
 import { useResourcesBySlugs } from "@/hooks/use-content";
 import { BookCover } from "@/components/BookCover";
+import { CourseCover } from "@/components/CourseCover";
 import { getResource } from "@/data/catalog";
-import { ArrowRight, Lock, ShoppingBag, Trash2 } from "lucide-react";
+import type { Course } from "@/data/courses";
+import { ArrowRight, GraduationCap, Lock, ShoppingBag, Trash2 } from "lucide-react";
 
 export function CartDrawer() {
   const { cartOpen, setCartOpen, cart, removeFromCart, cartTotal } =
@@ -21,10 +23,35 @@ export function CartDrawer() {
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
-  // Resolve cart covers against published DB resources (legacy fallback).
+  // Resolve resource covers against published DB resources (legacy fallback).
   const dbResources = useResourcesBySlugs(cart.map((c) => c.slug));
   const resourceFor = (slug: string) =>
     dbResources?.find((r) => r.slug === slug) ?? getResource(slug);
+
+  const courseFor = (item: (typeof cart)[number]): Course | null =>
+    item.itemType === "course"
+      ? {
+          id: item.courseId,
+          slug: item.slug,
+          title: item.title,
+          titleBn: item.titleBn ?? item.title,
+          category: item.tag,
+          categoryBn: item.tag,
+          level: "All levels",
+          duration: "Self-paced",
+          lessonCount: 0,
+          isFree: item.price <= 0,
+          price: item.price,
+          compareAt: item.compareAt,
+          status: "published",
+          shortDescription: "",
+          description: "",
+          whatYouLearn: [],
+          audience: [],
+          cover: item.cover,
+          modules: [],
+        }
+      : null;
 
   const handleCheckout = () => {
     if (cart.length === 0) return;
@@ -58,7 +85,7 @@ export function CartDrawer() {
                 Your cart is empty
               </p>
               <p className="font-bangla mt-1 text-sm text-muted-foreground">
-                গবেষণা ও স্কলারশিপ রিসোর্স দেখে শুরু করুন।
+                গবেষণা ও স্কলারশিপ রিসোর্স, আর কোর্স — বেছে নিন এবং শুরু করুন।
               </p>
             </div>
             <Button asChild className="rounded-full" onClick={() => setCartOpen(false)}>
@@ -72,15 +99,22 @@ export function CartDrawer() {
             <div className="flex-1 overflow-y-auto px-6 py-4">
               <ul className="flex flex-col gap-4">
                 {cart.map((item) => {
-                  const resource = resourceFor(item.slug);
+                  const isCourse = item.itemType === "course";
+                  const destination = isCourse
+                    ? `/courses/${item.slug}`
+                    : `/resources/${item.slug}`;
+                  const course = isCourse ? courseFor(item) : null;
+                  const resource = isCourse ? null : resourceFor(item.slug);
                   return (
                     <li key={item.slug} className="flex gap-4">
                       <Link
-                        to={`/resources/${item.slug}`}
+                        to={destination}
                         onClick={() => setCartOpen(false)}
                         className="w-16 shrink-0"
                       >
-                        {resource ? (
+                        {course ? (
+                          <CourseCover course={course} className="rounded-xl" />
+                        ) : resource ? (
                           <BookCover resource={resource} compact />
                         ) : (
                           <div className="aspect-[4/5] rounded-xl bg-muted" />
@@ -88,14 +122,23 @@ export function CartDrawer() {
                       </Link>
                       <div className="flex flex-1 flex-col gap-1">
                         <Link
-                          to={`/resources/${item.slug}`}
+                          to={destination}
                           onClick={() => setCartOpen(false)}
                           className="font-serif text-sm leading-snug font-semibold text-navy hover:text-teal dark:text-slate-100"
                         >
                           {item.titleBn ?? item.title}
                         </Link>
                         <p className="text-[11px] text-muted-foreground">
-                          {item.tag} • Digital download
+                          {isCourse ? (
+                            <>
+                              <GraduationCap className="mr-1 inline size-3" />
+                              {item.tag} • Online course
+                            </>
+                          ) : (
+                            <>
+                              {item.tag} • Digital download
+                            </>
+                          )}
                         </p>
                         <p className="mt-auto font-serif text-base font-semibold text-navy dark:text-slate-100">
                           ৳{item.price}
@@ -134,8 +177,8 @@ export function CartDrawer() {
                     : "Sign in to check out"}
                 </Button>
                 <p className="text-center text-[11px] text-muted-foreground">
-                  Secure digital delivery — resources appear in your library
-                  instantly after purchase.
+                  Secure digital delivery — resources and courses unlock after
+                  payment is confirmed.
                 </p>
               </div>
             </SheetFooter>
