@@ -153,23 +153,94 @@ async function resourceHasActiveFile(
 }
 
 /**
- * Whether a course has at least one module with at least one lesson — a
- * paid course must never be published as an empty shell.
+ * Minimum substantive content for a text lesson before a course may be
+ * published — enough to be a real lesson rather than a placeholder.
  */
-async function courseHasContent(
+const MIN_TEXT_LESSON_CHARS = 200;
+
+/** Whether a single lesson carries real content for its lesson type. */
+function lessonHasMeaningfulContent(lesson: {
+  title: string;
+  lessonType: string;
+  content?: string;
+  videoProvider?: string;
+  videoId?: string;
+  fileStorageId?: string;
+}): boolean {
+  if (!lesson.title.trim()) return false;
+  switch (lesson.lessonType) {
+    case "text":
+      return (lesson.content ?? "").trim().length >= MIN_TEXT_LESSON_CHARS;
+    case "video":
+      return Boolean(lesson.videoId?.trim());
+    case "PDF":
+    case "downloadable-resource":
+      return Boolean(lesson.fileStorageId);
+    case "external-embed":
+      return Boolean(lesson.videoId?.trim() || (lesson.content ?? "").trim().length >= 50);
+    case "quiz":
+      return (lesson.content ?? "").trim().length > 0;
+    default:
+      return false;
+  }
+}
+
+/**
+ * Whether a course is publishable as a real course: at least one module,
+ * at least one lesson, and at least one lesson with actual content for its
+ * lesson type. A shell of empty placeholder lessons can never be sold.
+ */
+async function courseHasMeaningfulContent(
   ctx: MutationCtx,
   courseId: Id<"courses">,
-): Promise<boolean> {
-  const mod = await ctx.db
+): Promise<{ ok: boolean; reason?: string }> {
+  const mods = await ctx.db
     .query("courseModules")
     .withIndex("by_course", (q) => q.eq("courseId", courseId))
-    .first();
-  if (mod === null) return false;
-  const lesson = await ctx.db
-    .query("courseLessons")
-    .withIndex("by_module", (q) => q.eq("moduleId", mod._id))
-    .first();
-  return lesson !== null;
+    .collect();
+  if (mods.length === 0) {
+    return { ok: false, reason: "Add at least one module before publishing this course." };
+  }
+
+  let lessonCount = 0;
+  let meaningful = 0;
+  for (const mod of mods) {
+    const lessons = await ctx.db
+      .query("courseLessons")
+      .withIndex("by_module", (q) => q.eq("moduleId", mod._id))
+      .collect();
+    for (const lesson of lessons) {
+      lessonCount += 1;
+      if (lessonHasMeaningfulContent(lesson)) meaningful += 1;
+    }
+  }
+  if (lessonCount === 0) {
+    return { ok: false, reason: "Add at least one lesson before publishing this course." };
+  }
+  if (meaningful === 0) {
+    return {
+      ok: false,
+      reason:
+        "No lesson has real content yet — add text, a video, an embed, or an attached file to at least one lesson before publishing.",
+    };
+  }
+  return { ok: true };
+}
+
+/** Enforce course publish rules: content + paid price. */
+async function assertCoursePublishable(
+  ctx: MutationCtx,
+  courseId: Id<"courses">,
+  isFree: boolean,
+  price: number,
+): Promise<void> {
+  const content = await courseHasMeaningfulContent(ctx, courseId);
+  if (!content.ok) throw new Error(content.reason);
+  if (!isFree && price <= 0) {
+    throw new Error(
+      "A paid course must have a price greater than 0 before it can be published.",
+    );
+  }
 }
 
 /* ------------------------------ validators ------------------------- */
@@ -817,6 +888,10 @@ export const getCourseAdmin = query({
             _id: l._id,
             title: l.title,
             lessonType: l.lessonType,
+            content: l.content ?? "",
+            videoProvider: l.videoProvider,
+            videoId: l.videoId,
+            fileStorageId: l.fileStorageId,
             isPreview: l.isPreview,
             duration: l.duration,
           })),
@@ -853,11 +928,10 @@ export const upsertCourse = mutation({
         createdAt: now,
         updatedAt: now,
       });
-      // A published course must have real content (≥1 module with ≥1 lesson).
-      if (data.status === "published" && !(await courseHasContent(ctx, newId))) {
-        throw new Error(
-          "Add at least one module with one lesson before publishing this course.",
-        );
+      // A published course must have real, meaningful content and, when
+      // paid, a real price (enforced server-side, never trusted from the UI).
+      if (data.status === "published") {
+        await assertCoursePublishable(ctx, newId, data.isFree, data.price);
       }
       await log(ctx, actor._id, "course.created", "course", newId, { title });
       return newId;
@@ -868,11 +942,7 @@ export const upsertCourse = mutation({
     const statusChanged = existing.status !== data.status;
     const priceChanged = existing.price !== data.price;
     if (statusChanged && data.status === "published") {
-      if (!(await courseHasContent(ctx, id))) {
-        throw new Error(
-          "Add at least one module with one lesson before publishing this course.",
-        );
-      }
+      await assertCoursePublishable(ctx, id, data.isFree, data.price);
     }
     await ctx.db.patch(id, {
       ...data,
@@ -905,11 +975,7 @@ export const setCourseStatus = mutation({
     const existing = await ctx.db.get(id);
     if (!existing) throw new Error("Course not found.");
     if (status === "published" && existing.status !== "published") {
-      if (!(await courseHasContent(ctx, id))) {
-        throw new Error(
-          "Add at least one module with one lesson before publishing this course.",
-        );
-      }
+      await assertCoursePublishable(ctx, id, existing.isFree, existing.price);
     }
     await ctx.db.patch(id, {
       status,
@@ -1049,6 +1115,70 @@ export const deleteLesson = mutation({
     await ctx.db.delete(id);
     await log(ctx, actor._id, "course.lesson_deleted", "course", lesson.courseId, {});
     return id;
+  },
+});
+
+/**
+ * Admin: attach an uploaded file (private Convex storage) to a lesson of
+ * type PDF / downloadable-resource. Replaces any previous lesson file.
+ */
+export const attachLessonFile = mutation({
+  args: {
+    courseId: v.id("courses"),
+    lessonId: v.id("courseLessons"),
+    storageId: v.id("_storage"),
+    filename: v.string(),
+    mimeType: v.string(),
+    fileSize: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const actor = await requireAdmin(ctx);
+    const lesson = await ctx.db.get(args.lessonId);
+    if (!lesson || lesson.courseId !== args.courseId) {
+      throw new Error("Lesson not found.");
+    }
+    if (!args.filename.trim() || args.fileSize <= 0 || args.fileSize > 200 * 1024 * 1024) {
+      throw new Error("Invalid file.");
+    }
+    // Replace: remove the old storage object when a previous file exists.
+    if (lesson.fileStorageId) {
+      try {
+        await ctx.storage.delete(lesson.fileStorageId as Id<"_storage">);
+      } catch {
+        // best-effort
+      }
+    }
+    await ctx.db.patch(args.lessonId, {
+      fileStorageId: args.storageId as string,
+    });
+    await log(ctx, actor._id, "course.lesson_file", "course", args.lessonId, {
+      filename: args.filename,
+    });
+    return args.lessonId;
+  },
+});
+
+/** Admin: remove a lesson's attached file. */
+export const removeLessonFile = mutation({
+  args: {
+    courseId: v.id("courses"),
+    lessonId: v.id("courseLessons"),
+  },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx);
+    const lesson = await ctx.db.get(args.lessonId);
+    if (!lesson || lesson.courseId !== args.courseId) {
+      throw new Error("Lesson not found.");
+    }
+    if (lesson.fileStorageId) {
+      try {
+        await ctx.storage.delete(lesson.fileStorageId as Id<"_storage">);
+      } catch {
+        // best-effort
+      }
+      await ctx.db.patch(args.lessonId, { fileStorageId: undefined });
+    }
+    return args.lessonId;
   },
 });
 
@@ -1225,6 +1355,25 @@ export const updateSiteSetting = mutation({
     }
     await log(ctx, actor._id, "settings.updated", "siteSettings", trimmed);
     return trimmed;
+  },
+});
+
+/* --------------------------- newsletter ---------------------------- */
+
+/** Admin: all newsletter subscribers with status and dates. */
+export const listNewsletterSubscribers = query({
+  args: {},
+  handler: async (ctx) => {
+    await requireAdminQuery(ctx);
+    const rows = await ctx.db.query("newsletters").collect();
+    return [...rows]
+      .sort((a, b) => b.subscribedAt - a.subscribedAt)
+      .map((r) => ({
+        email: r.email,
+        status: r.status ?? "active", // legacy rows pre-status are active
+        subscribedAt: r.subscribedAt,
+        unsubscribedAt: r.unsubscribedAt ?? undefined,
+      }));
   },
 });
 

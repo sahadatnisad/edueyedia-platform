@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { toast } from "sonner";
 import { api } from "@/convex/_generated/api";
@@ -67,19 +67,23 @@ export default function AdminSettings() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState<string | null>(null);
 
-  // Hydrate the editors from the DB once it loads.
-  useEffect(() => {
-    if (!settings) return;
-    setDrafts((prev) => {
-      const next = { ...prev };
-      for (const row of settings) {
-        if (next[row.key] === undefined) {
-          next[row.key] = JSON.stringify(row.value, null, 2);
+  // Hydrate the editors from the DB once it loads — "adjust state when a
+  // value changes" pattern (guarded by a previous-value comparison).
+  const [prevSettings, setPrevSettings] = useState(settings);
+  if (settings !== prevSettings) {
+    setPrevSettings(settings);
+    if (settings) {
+      setDrafts((prev) => {
+        const next = { ...prev };
+        for (const row of settings) {
+          if (next[row.key] === undefined) {
+            next[row.key] = JSON.stringify(row.value, null, 2);
+          }
         }
-      }
-      return next;
-    });
-  }, [settings]);
+        return next;
+      });
+    }
+  }
 
   const isJsonValid = (key: string) => {
     try {

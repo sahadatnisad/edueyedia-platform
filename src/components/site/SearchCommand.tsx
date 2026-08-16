@@ -47,10 +47,13 @@ export function SearchCommand() {
   const results = useSearchContent(q);
   const all = useAllContent();
 
-  // Reset the query whenever the dialog opens.
-  useEffect(() => {
+  // Reset the query whenever the dialog opens — "adjust state when a value
+  // changes" pattern (conditional on the previous open state, so it settles).
+  const [prevSearchOpen, setPrevSearchOpen] = useState(searchOpen);
+  if (searchOpen !== prevSearchOpen) {
+    setPrevSearchOpen(searchOpen);
     if (searchOpen) setQ("");
-  }, [searchOpen]);
+  }
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {

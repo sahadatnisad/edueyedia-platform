@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { useMutation, useQuery } from "convex/react";
 import { toast } from "sonner";
@@ -126,15 +126,20 @@ export function AdminAuthorEditor() {
   const [status, setStatus] = useState("published");
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    if (!existing || id === "new") return;
-    setName(existing.name ?? "");
-    setRole(existing.role ?? "");
-    setBio(existing.bio ?? "");
-    setImage(existing.image ?? "");
-    setCredentials(existing.credentials ?? []);
-    setStatus(existing.status);
-  }, [existing, id]);
+  // Hydrate the form when the fetched record arrives — "adjust state when a
+  // value changes" pattern (guarded by a previous-value comparison).
+  const [prevExisting, setPrevExisting] = useState(existing);
+  if (existing !== prevExisting) {
+    setPrevExisting(existing);
+    if (existing && id !== "new") {
+      setName(existing.name ?? "");
+      setRole(existing.role ?? "");
+      setBio(existing.bio ?? "");
+      setImage(existing.image ?? "");
+      setCredentials(existing.credentials ?? []);
+      setStatus(existing.status);
+    }
+  }
 
   const handleSave = async () => {
     setSaving(true);

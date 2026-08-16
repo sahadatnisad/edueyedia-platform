@@ -300,9 +300,12 @@ export const completeVerifiedOrder = mutation({
     const storePassword = process.env.SSLCOMMERZ_STORE_PASSWORD ?? "";
     const gatewayConfigured = Boolean(storeId && storePassword);
     // Demo sandbox completion is a development-only escape hatch — it must be
-    // explicitly enabled with ALLOW_SANDBOX_PAYMENTS=true and can never run
-    // when a real gateway is configured.
-    const sandboxAllowed = process.env.ALLOW_SANDBOX_PAYMENTS === "true";
+    // explicitly enabled with ALLOW_SANDBOX_PAYMENTS=true, can never run when
+    // a real gateway is configured, and is hard-blocked in production
+    // deployments (NODE_ENV=production) even if the flag is set by mistake.
+    const production = process.env.NODE_ENV === "production";
+    const sandboxAllowed =
+      !production && process.env.ALLOW_SANDBOX_PAYMENTS === "true";
 
     if (gateway === "sandbox") {
       if (gatewayConfigured) {
@@ -386,6 +389,7 @@ export const completeVerifiedOrder = mutation({
     };
   },
 });
+
 
 /**
  * Read a single order for the signed-in user — used by the payment session
@@ -481,31 +485,3 @@ export const removeFromLibrary = mutation({
   },
 });
 
-/** Subscribe an email to the Edueyedia newsletter. */
-export const subscribeNewsletter = mutation({
-  args: { email: v.string() },
-  handler: async (ctx, { email }) => {
-    const normalized = email.trim().toLowerCase();
-    if (!normalized.includes("@")) {
-      throw new Error("Please enter a valid email address.");
-    }
-
-    // Abuse protection: at most 5 subscribe attempts per address per hour.
-    await ctx.runMutation(api.ratelimit.hit, {
-      key: `newsletter:${normalized}`,
-      limit: 5,
-      windowMs: 60 * 60 * 1000,
-    });
-
-    const existing = await ctx.db
-      .query("newsletters")
-      .withIndex("by_email", (q) => q.eq("email", normalized))
-      .first();
-    if (existing === null) {
-      await ctx.db.insert("newsletters", {
-        email: normalized,
-        subscribedAt: Date.now(),
-      });
-    }
-  },
-});

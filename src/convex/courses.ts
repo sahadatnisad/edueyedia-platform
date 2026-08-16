@@ -8,9 +8,8 @@ import { getCurrentUser } from "./users";
 /*                                                                    */
 /*  Everything here re-checks the signed-in user server-side — the     */
 /*  client never decides who is enrolled or what content is unlocked.  */
-/*  Free published courses enroll instantly; paid course checkout is   */
-/*  not open yet (all current courses are `coming-soon`), and the      */
-/*  mutation says so explicitly instead of inventing a fake flow.      */
+/*  Free published courses enroll instantly; paid courses unlock only  */
+/*  through the unified checkout (server-verified order → enrollment). */
 /* ------------------------------------------------------------------ */
 
 /** Enroll the signed-in user in a published free course. */
@@ -29,7 +28,7 @@ export const enrollInCourse = mutation({
     }
     if (!course.isFree) {
       throw new Error(
-        "Paid course enrollment is not available yet — checkout is coming soon.",
+        "This is a paid course — enroll through checkout after payment verification.",
       );
     }
 
@@ -263,6 +262,7 @@ export const lessonContent = query({
       content: lesson.content ?? "",
       videoProvider: lesson.videoProvider,
       videoId: lesson.videoId,
+      hasFile: Boolean(lesson.fileStorageId),
       duration: lesson.duration,
       isPreview: lesson.isPreview,
     };

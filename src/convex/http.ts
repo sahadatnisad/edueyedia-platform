@@ -290,9 +290,11 @@ http.route({
 
     /* ----------------------------- Sandbox path --------------------------- */
     // Development-only: completing an order without a real gateway must be
-    // explicitly enabled with ALLOW_SANDBOX_PAYMENTS=true. In production this
-    // path is unreachable (flag absent + live gateway configured).
-    if (process.env.ALLOW_SANDBOX_PAYMENTS !== "true") {
+    // explicitly enabled with ALLOW_SANDBOX_PAYMENTS=true AND never runs in a
+    // production deployment (NODE_ENV=production). This path is unreachable
+    // in production even if the flag is set by mistake.
+    const production = process.env.NODE_ENV === "production";
+    if (production || process.env.ALLOW_SANDBOX_PAYMENTS !== "true") {
       return new Response(
         JSON.stringify({
           ok: false,

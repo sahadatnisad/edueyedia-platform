@@ -47,7 +47,7 @@ export function PageMeta({
   description,
   path = "/",
   jsonLd,
-  image = "/logo.svg",
+  image = "/og.svg",
   type = "website",
 }: PageMetaProps) {
   useEffect(() => {
@@ -103,6 +103,7 @@ export function organizationJsonLd() {
     name: "Edueyedia",
     url: SITE_URL,
     logo: `${SITE_URL}/logo.svg`,
+    image: `${SITE_URL}/og.svg`,
     slogan: "Research. Learn. Advance.",
     description:
       "গবেষণা, শিক্ষা ও সুযোগের বিশ্বস্ত ডিজিটাল প্ল্যাটফর্ম — research guides, scholarships, academic writing and study-abroad resources in Bangla.",

@@ -6,20 +6,30 @@ import { ArrowRight, CheckCircle2, Loader2, Mail } from "lucide-react";
 import { Reveal } from "@/components/Reveal";
 
 export function Newsletter() {
-  const subscribe = useMutation(api.library.subscribeNewsletter);
+  const subscribe = useMutation(api.newsletter.subscribe);
   const [email, setEmail] = useState("");
+  const [consent, setConsent] = useState(false);
   const [status, setStatus] = useState<"idle" | "loading" | "done">("idle");
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!email.includes("@")) return;
+    if (!consent) {
+      toast.error("Please confirm you'd like to receive Edueyedia emails.");
+      return;
+    }
     setStatus("loading");
     try {
-      await subscribe({ email });
+      const result = await subscribe({ email });
       setStatus("done");
-      toast.success("Welcome to Edueyedia", {
-        description: "You're on the list — we'll write when there's something worth reading.",
-      });
+      toast.success(
+        result.alreadySubscribed ? "Already subscribed" : "Welcome to Edueyedia",
+        {
+          description: result.alreadySubscribed
+            ? "This address is already on the list — you're all set."
+            : "You're on the list — we'll write when there's something worth reading.",
+        },
+      );
     } catch (err) {
       console.error(err);
       setStatus("idle");
@@ -56,7 +66,8 @@ export function Newsletter() {
                 </p>
                 <p className="mt-4 max-w-md text-sm leading-relaxed text-ink-soft dark:text-slate-400">
                   Research insights, scholarship opportunities, free resources and
-                  new Edueyedia publications — once a month, never spam.
+                  new Edueyedia publications — once a month, never spam. Every
+                  letter includes a one-click unsubscribe link.
                 </p>
               </div>
 
@@ -74,32 +85,48 @@ export function Newsletter() {
                     </div>
                   </div>
                 ) : (
-                  <form onSubmit={handleSubmit} className="flex flex-col gap-3 sm:flex-row">
-                    <div className="relative flex-1">
-                      <Mail className="absolute top-1/2 left-4 size-4 -translate-y-1/2 text-ink-soft" />
-                      <input
-                        type="email"
-                        required
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="name@example.com"
-                        className="h-13 w-full rounded-full border border-hairline bg-ivory/60 py-3.5 pr-4 pl-11 text-sm text-navy placeholder:text-ink-soft/70 focus:border-teal focus:ring-2 focus:ring-teal/30 focus:outline-none dark:border-white/15 dark:bg-white/5 dark:text-slate-100 dark:placeholder:text-slate-500"
-                      />
+                  <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+                    <div className="flex flex-col gap-3 sm:flex-row">
+                      <div className="relative flex-1">
+                        <Mail className="absolute top-1/2 left-4 size-4 -translate-y-1/2 text-ink-soft" />
+                        <input
+                          type="email"
+                          required
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          placeholder="name@example.com"
+                          className="h-13 w-full rounded-full border border-hairline bg-ivory/60 py-3.5 pr-4 pl-11 text-sm text-navy placeholder:text-ink-soft/70 focus:border-teal focus:ring-2 focus:ring-teal/30 focus:outline-none dark:border-white/15 dark:bg-white/5 dark:text-slate-100 dark:placeholder:text-slate-500"
+                        />
+                      </div>
+                      <button
+                        type="submit"
+                        disabled={status === "loading" || !consent}
+                        className="inline-flex h-13 shrink-0 items-center justify-center gap-2 rounded-full bg-navy px-7 py-3.5 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-navy/90 disabled:opacity-60 dark:bg-teal dark:text-navy-deep dark:hover:bg-teal-bright"
+                      >
+                        {status === "loading" ? (
+                          <Loader2 className="size-4 animate-spin" />
+                        ) : (
+                          <>
+                            Join Edueyedia
+                            <ArrowRight className="size-4" />
+                          </>
+                        )}
+                      </button>
                     </div>
-                    <button
-                      type="submit"
-                      disabled={status === "loading"}
-                      className="inline-flex h-13 shrink-0 items-center justify-center gap-2 rounded-full bg-navy px-7 py-3.5 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-navy/90 disabled:opacity-60 dark:bg-teal dark:text-navy-deep dark:hover:bg-teal-bright"
-                    >
-                      {status === "loading" ? (
-                        <Loader2 className="size-4 animate-spin" />
-                      ) : (
-                        <>
-                          Join Edueyedia
-                          <ArrowRight className="size-4" />
-                        </>
-                      )}
-                    </button>
+                    {/* Explicit consent — never pre-checked. */}
+                    <label className="flex items-start gap-2.5 text-xs leading-relaxed text-ink-soft dark:text-slate-400">
+                      <input
+                        type="checkbox"
+                        checked={consent}
+                        onChange={(e) => setConsent(e.target.checked)}
+                        className="mt-0.5 size-4 shrink-0 accent-teal"
+                        aria-describedby="newsletter-consent-note"
+                      />
+                      <span id="newsletter-consent-note">
+                        By subscribing, you agree to receive Edueyedia updates by
+                        email. You can unsubscribe anytime.
+                      </span>
+                    </label>
                   </form>
                 )}
                 <p className="mt-4 text-xs text-ink-soft dark:text-slate-500">

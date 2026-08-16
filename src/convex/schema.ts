@@ -499,11 +499,19 @@ const schema = defineSchema(
     /*  Platform                                                           */
     /* ------------------------------------------------------------------ */
 
-    // Newsletter subscribers
+    // Newsletter subscribers. Rows are never deleted on unsubscribe — the
+    // status flips to "unsubscribed" so the owner keeps the (honest) history.
+    // The unsubscribeToken is a per-subscriber secret used in the one-click
+    // unsubscribe link; it is regenerated on re-subscribe.
     newsletters: defineTable({
       email: v.string(),
+      status: v.union(v.literal("active"), v.literal("unsubscribed")),
       subscribedAt: v.number(),
-    }).index("by_email", ["email"]),
+      unsubscribedAt: v.optional(v.number()),
+      unsubscribeToken: v.string(),
+    })
+      .index("by_email", ["email"])
+      .index("by_token", ["unsubscribeToken"]),
 
     // Site settings — JSON values keyed by name (e.g. scholarships, collections).
     siteSettings: defineTable({

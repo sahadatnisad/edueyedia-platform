@@ -1,9 +1,16 @@
-import { useEffect, useState } from "react";
+import { useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { useMutation, useQuery } from "convex/react";
 import { toast } from "sonner";
 import { api } from "@/convex/_generated/api";
-import { GraduationCap, Pencil, Plus, Trash2 } from "lucide-react";
+import {
+  FileText,
+  GraduationCap,
+  Pencil,
+  Plus,
+  Trash2,
+  UploadCloud,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -200,7 +207,34 @@ interface LessonDraft {
   title: string;
   lessonType: string;
   content: string;
+  videoProvider?: string;
+  videoId?: string;
+  fileStorageId?: string;
   isPreview: boolean;
+}
+
+/** Mirror of the server-side publish rule — a lesson is "real" when its own
+ *  lesson type carries actual content (text ≥ 200 chars, video id, attached
+ *  file, embed URL, or quiz content). The backend re-verifies on save. */
+const MIN_TEXT_LESSON_CHARS = 200;
+
+function lessonReady(l: LessonDraft): boolean {
+  if (!l.title.trim()) return false;
+  switch (l.lessonType) {
+    case "text":
+      return l.content.trim().length >= MIN_TEXT_LESSON_CHARS;
+    case "video":
+      return Boolean(l.videoId?.trim());
+    case "PDF":
+    case "downloadable-resource":
+      return Boolean(l.fileStorageId);
+    case "external-embed":
+      return Boolean(l.videoId?.trim());
+    case "quiz":
+      return l.content.trim().length > 0;
+    default:
+      return false;
+  }
 }
 
 interface ModuleDraft {
@@ -222,65 +256,155 @@ export function AdminCourseEditor() {
   const deleteModule = useMutation(api.admin.deleteModule);
   const saveLesson = useMutation(api.admin.upsertLesson);
   const deleteLesson = useMutation(api.admin.deleteLesson);
+  const getUploadUrl = useMutation(api.files.getUploadUrl);
+  const attachFile = useMutation(api.admin.attachLessonFile);
+  const removeFile = useMutation(api.admin.removeLessonFile);
   const [form, setForm] = useState<FormState>(EMPTY);
   const [modules, setModules] = useState<ModuleDraft[]>([]);
   const [saving, setSaving] = useState(false);
+  const lessonFileInputs = useRef<Record<string, HTMLInputElement | null>>({});
 
-  useEffect(() => {
-    if (!existing || id === "new") return;
-    const { course: c, modules: mods } = existing;
-    setForm({
-      title: c.title ?? "",
-      titleBn: c.titleBn ?? "",
-      shortDescription: c.shortDescription ?? "",
-      description: c.description ?? "",
-      category: c.category ?? "",
-      categoryBn: c.categoryBn ?? "",
-      level: c.level,
-      duration: c.duration ?? "",
-      price: String(c.price ?? 0),
-      compareAt: c.compareAt != null ? String(c.compareAt) : "",
-      isFree: c.isFree,
-      status: c.status,
-      featured: c.featured,
-      whatYouLearn: c.whatYouLearn ?? [],
-      audience: c.audience ?? [],
-      prerequisites: c.prerequisites ?? [],
-      coverTone: c.coverTone,
-      coverPattern: c.coverPattern,
-      coverGlyph: c.coverGlyph ?? "",
-      seoTitle: c.seoTitle ?? "",
-      metaDescription: c.metaDescription ?? "",
-    });
-    setModules(
-      (mods ?? []).map((m) => ({
-        id: m._id,
-        title: m.title,
-        lessons: m.lessons.map((l) => ({
-          id: l._id,
-          title: l.title,
-          lessonType: l.lessonType,
-          content: "",
-          isPreview: l.isPreview,
+  // The saved course id (undefined while a new course is unsaved).
+  const courseId =
+    id && id !== "new" ? (id as string) : (existing?.course?._id as string | undefined);
+
+  // Hydrate the form when the fetched record arrives — "adjust state when a
+  // value changes" pattern (guarded by a previous-value comparison). Lesson
+  // content round-trips so editing an existing course never wipes it.
+  const [prevExisting, setPrevExisting] = useState(existing);
+  if (existing !== prevExisting) {
+    setPrevExisting(existing);
+    if (existing && id !== "new") {
+      const { course: c, modules: mods } = existing;
+      setForm({
+        title: c.title ?? "",
+        titleBn: c.titleBn ?? "",
+        shortDescription: c.shortDescription ?? "",
+        description: c.description ?? "",
+        category: c.category ?? "",
+        categoryBn: c.categoryBn ?? "",
+        level: c.level,
+        duration: c.duration ?? "",
+        price: String(c.price ?? 0),
+        compareAt: c.compareAt != null ? String(c.compareAt) : "",
+        isFree: c.isFree,
+        status: c.status,
+        featured: c.featured,
+        whatYouLearn: c.whatYouLearn ?? [],
+        audience: c.audience ?? [],
+        prerequisites: c.prerequisites ?? [],
+        coverTone: c.coverTone,
+        coverPattern: c.coverPattern,
+        coverGlyph: c.coverGlyph ?? "",
+        seoTitle: c.seoTitle ?? "",
+        metaDescription: c.metaDescription ?? "",
+      });
+      setModules(
+        (mods ?? []).map((m) => ({
+          id: m._id,
+          title: m.title,
+          lessons: m.lessons.map((l) => ({
+            id: l._id,
+            title: l.title,
+            lessonType: l.lessonType,
+            content: l.content ?? "",
+            videoProvider: l.videoProvider ?? "",
+            videoId: l.videoId ?? "",
+            fileStorageId: l.fileStorageId ?? undefined,
+            isPreview: l.isPreview,
+          })),
         })),
-      })),
+      );
+    }
+  }
+
+  const updateLesson = (mi: number, li: number, patch: Partial<LessonDraft>) =>
+    setModules((ms) =>
+      ms.map((m, j) =>
+        j === mi
+          ? {
+              ...m,
+              lessons: m.lessons.map((l, k) =>
+                k === li ? { ...l, ...patch } : l,
+              ),
+            }
+          : m,
+      ),
     );
-  }, [existing, id]);
+
+  const uploadLessonFile = async (mi: number, li: number, file: File | undefined) => {
+    if (!file) return;
+    const lesson = modules[mi]?.lessons[li];
+    if (!lesson) return;
+    if (!lesson.id || !courseId) {
+      toast.error("Save the course first, then attach the lesson file.");
+      return;
+    }
+    if (file.size > 200 * 1024 * 1024) {
+      toast.error("File is larger than the 200 MB limit.");
+      return;
+    }
+    if (file.type && file.type !== "application/pdf") {
+      toast.error("Please upload a PDF file.");
+      return;
+    }
+    try {
+      const uploadUrl = await getUploadUrl();
+      const storageId = await fetch(uploadUrl, {
+        method: "POST",
+        headers: { "Content-Type": file.type || "application/pdf" },
+        body: file,
+      }).then((r) => {
+        if (!r.ok) throw new Error(`Upload failed (${r.status})`);
+        return r.text();
+      });
+      await attachFile({
+        courseId: courseId as never,
+        lessonId: lesson.id as never,
+        storageId: storageId as never,
+        filename: file.name || "lesson.pdf",
+        mimeType: "application/pdf",
+        fileSize: file.size,
+      });
+      updateLesson(mi, li, { fileStorageId: storageId });
+      toast.success("File attached", { description: file.name });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Upload failed");
+    }
+  };
+
+  const removeLessonFile = async (mi: number, li: number) => {
+    const lesson = modules[mi]?.lessons[li];
+    if (!lesson?.id || !courseId) return;
+    try {
+      await removeFile({
+        courseId: courseId as never,
+        lessonId: lesson.id as never,
+      });
+      updateLesson(mi, li, { fileStorageId: undefined });
+      toast.success("File removed");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed");
+    }
+  };
 
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
 
   const handleSave = async () => {
-    // Publish guard: never publish a course with no meaningful lesson content.
+    // Publish guard: never publish a course whose lessons are all empty
+    // placeholders (mirrors the server-side check in convex/admin.ts).
     const hasRealLesson = modules.some((mod) =>
-      mod.lessons.some(
-        (l) => l.title.trim().length > 0 && l.content.trim().length > 0,
-      ),
+      mod.lessons.some((l) => lessonReady(l)),
     );
     if (form.status === "published" && !hasRealLesson) {
       toast.error(
-        "Add at least one lesson with real content before publishing a course.",
+        "Add at least one lesson with real content before publishing a course (text ≥ 200 characters, a video/embed URL, or an attached file).",
       );
+      return;
+    }
+    if (form.status === "published" && !form.isFree && (Number(form.price) || 0) <= 0) {
+      toast.error("A paid course must have a price greater than 0 to publish.");
       return;
     }
     setSaving(true);
@@ -329,6 +453,8 @@ export function AdminCourseEditor() {
             title: lesson.title,
             lessonType: lesson.lessonType as never,
             content: lesson.content || undefined,
+            videoProvider: lesson.videoProvider || undefined,
+            videoId: lesson.videoId || undefined,
             position: li,
             isPreview: lesson.isPreview,
           });
@@ -512,92 +638,157 @@ export function AdminCourseEditor() {
               </div>
               <div className="mt-3 flex flex-col gap-2 pl-1">
                 {mod.lessons.map((lesson, li) => (
-                  <div key={li} className="flex flex-wrap items-center gap-2 rounded-xl bg-white p-2 dark:bg-white/5">
-                    <span className="w-8 text-center font-serif text-xs text-gold">
-                      {li + 1}.
-                    </span>
-                    <TextInput
-                      value={lesson.title}
-                      placeholder="Lesson title"
-                      onChange={(e) =>
-                        setModules((ms) =>
-                          ms.map((m, j) =>
-                            j === mi
-                              ? {
-                                  ...m,
-                                  lessons: m.lessons.map((l, k) =>
-                                    k === li ? { ...l, title: e.target.value } : l,
-                                  ),
-                                }
-                              : m,
-                          ),
-                        )
-                      }
-                      className="h-8 flex-1 min-w-40"
-                    />
-                    <SimpleSelect
-                      value={lesson.lessonType}
-                      onChange={(v) =>
-                        setModules((ms) =>
-                          ms.map((m, j) =>
-                            j === mi
-                              ? {
-                                  ...m,
-                                  lessons: m.lessons.map((l, k) =>
-                                    k === li ? { ...l, lessonType: v } : l,
-                                  ),
-                                }
-                              : m,
-                          ),
-                        )
-                      }
-                      options={["text", "video", "PDF", "downloadable-resource", "quiz", "external-embed"].map((t) => ({
-                        value: t,
-                        label: t,
-                      }))}
-                    />
-                    <label className="flex items-center gap-1.5 text-[11px] font-medium text-ink-soft dark:text-slate-400">
-                      <Switch
-                        checked={lesson.isPreview}
-                        onCheckedChange={(c) =>
+                  <div
+                    key={li}
+                    className="flex flex-col gap-2 rounded-xl bg-white p-2 dark:bg-white/5"
+                  >
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="w-8 text-center font-serif text-xs text-gold">
+                        {li + 1}.
+                      </span>
+                      <TextInput
+                        value={lesson.title}
+                        placeholder="Lesson title"
+                        onChange={(e) => updateLesson(mi, li, { title: e.target.value })}
+                        className="h-8 flex-1 min-w-40"
+                      />
+                      <SimpleSelect
+                        value={lesson.lessonType}
+                        onChange={(v) =>
+                          updateLesson(mi, li, {
+                            lessonType: v,
+                            content: v === lesson.lessonType ? lesson.content : "",
+                          })
+                        }
+                        options={["text", "video", "PDF", "downloadable-resource", "quiz", "external-embed"].map((t) => ({
+                          value: t,
+                          label: t,
+                        }))}
+                      />
+                      <label className="flex items-center gap-1.5 text-[11px] font-medium text-ink-soft dark:text-slate-400">
+                        <Switch
+                          checked={lesson.isPreview}
+                          onCheckedChange={(c) =>
+                            updateLesson(mi, li, { isPreview: c === true })
+                          }
+                          className="scale-75"
+                        />
+                        Preview
+                      </label>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 rounded-full p-0 text-destructive"
+                        onClick={() => {
+                          if (lesson.id) {
+                            deleteLesson({ id: lesson.id as never }).catch((err) =>
+                              toast.error(err instanceof Error ? err.message : "Failed"),
+                            );
+                          }
                           setModules((ms) =>
                             ms.map((m, j) =>
                               j === mi
-                                ? {
-                                    ...m,
-                                    lessons: m.lessons.map((l, k) =>
-                                      k === li ? { ...l, isPreview: c === true } : l,
-                                    ),
-                                  }
+                                ? { ...m, lessons: m.lessons.filter((_, k) => k !== li) }
                                 : m,
                             ),
-                          )
-                        }
-                        className="scale-75"
-                      />
-                      Preview
-                    </label>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 rounded-full p-0 text-destructive"
-                      onClick={() => {
-                        if (lesson.id) {
-                          deleteLesson({ id: lesson.id as never }).catch((err) =>
-                            toast.error(err instanceof Error ? err.message : "Failed"),
                           );
-                        }
-                        setModules((ms) =>
-                          ms.map((m, j) =>
-                            j === mi
-                              ? { ...m, lessons: m.lessons.filter((_, k) => k !== li) }
-                              : m,
-                          ),
-                        );
-                      }}
-                    >
-                      <Trash2 className="size-3.5" />
-                    </Button>
+                        }}
+                      >
+                        <Trash2 className="size-3.5" />
+                      </Button>
+                    </div>
+
+                    {/* Lesson content, by type */}
+                    {lesson.lessonType === "text" && (
+                      <TextArea
+                        value={lesson.content}
+                        onChange={(e) => updateLesson(mi, li, { content: e.target.value })}
+                        placeholder={`Lesson content (${MIN_TEXT_LESSON_CHARS}+ characters required to publish)`}
+                        className="ml-8 min-h-28 w-[calc(100%-2rem)]"
+                      />
+                    )}
+                    {lesson.lessonType === "video" && (
+                      <div className="ml-8 flex flex-wrap items-center gap-2">
+                        <TextInput
+                          value={lesson.videoProvider ?? ""}
+                          placeholder="Provider (youtube, vimeo…)"
+                          onChange={(e) => updateLesson(mi, li, { videoProvider: e.target.value })}
+                          className="h-8 w-36"
+                        />
+                        <TextInput
+                          value={lesson.videoId ?? ""}
+                          placeholder="Video ID or URL"
+                          onChange={(e) => updateLesson(mi, li, { videoId: e.target.value })}
+                          className="h-8 min-w-40 flex-1"
+                        />
+                      </div>
+                    )}
+                    {lesson.lessonType === "external-embed" && (
+                      <TextInput
+                        value={lesson.videoId ?? ""}
+                        placeholder="Embed / source URL"
+                        onChange={(e) => updateLesson(mi, li, { videoId: e.target.value })}
+                        className="ml-8 h-8"
+                      />
+                    )}
+                    {lesson.lessonType === "quiz" && (
+                      <TextArea
+                        value={lesson.content}
+                        onChange={(e) => updateLesson(mi, li, { content: e.target.value })}
+                        placeholder="Quiz content (questions / answers)"
+                        className="ml-8 min-h-20 w-[calc(100%-2rem)]"
+                      />
+                    )}
+                    {(lesson.lessonType === "PDF" ||
+                      lesson.lessonType === "downloadable-resource") && (
+                      <div className="ml-8 flex flex-wrap items-center gap-2">
+                        <input
+                          type="file"
+                          accept="application/pdf,.pdf"
+                          className="hidden"
+                          ref={(el) => {
+                            lessonFileInputs.current[`${mi}:${li}`] = el;
+                          }}
+                          onChange={(e) => {
+                            void uploadLessonFile(mi, li, e.target.files?.[0]);
+                            if (lessonFileInputs.current[`${mi}:${li}`]) {
+                              lessonFileInputs.current[`${mi}:${li}`]!.value = "";
+                            }
+                          }}
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-8 rounded-full text-xs"
+                          onClick={() =>
+                            lessonFileInputs.current[`${mi}:${li}`]?.click()
+                          }
+                        >
+                          <UploadCloud className="size-3.5" />
+                          {lesson.fileStorageId ? "Replace file" : "Attach file"}
+                        </Button>
+                        {lesson.fileStorageId && (
+                          <>
+                            <span className="inline-flex items-center gap-1.5 rounded-full bg-teal/10 px-2.5 py-1 text-[10px] font-semibold text-teal dark:text-teal-bright">
+                              <FileText className="size-3" /> PDF attached
+                            </span>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 rounded-full px-2 text-[10px] text-destructive hover:text-destructive"
+                              onClick={() => void removeLessonFile(mi, li)}
+                            >
+                              <Trash2 className="size-3" /> Remove
+                            </Button>
+                          </>
+                        )}
+                        <span className="text-[10px] text-ink-soft dark:text-slate-400">
+                          Private storage — required before publishing.
+                        </span>
+                      </div>
+                    )}
                   </div>
                 ))}
                 <Button

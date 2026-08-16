@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { useMutation, useQuery } from "convex/react";
 import { toast } from "sonner";
@@ -202,29 +202,34 @@ export function AdminResearchEditor() {
   const [form, setForm] = useState<FormState>(EMPTY);
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    if (!existing || id === "new") return;
-    const r = existing;
-    setForm({
-      title: r.title ?? "",
-      titleBn: r.titleBn ?? "",
-      excerpt: r.excerpt ?? "",
-      contentType: r.contentType ?? "research-guide",
-      authorId: r.authorId ?? "",
-      tags: r.tags ?? [],
-      featured: r.featured,
-      readingTime: r.readingTime ?? "5 min read",
-      blocks: (r.blocks ?? []) as Block[],
-      relatedResources: r.relatedResources ?? [],
-      relatedCourses: r.relatedCourses ?? [],
-      references: r.references ?? [],
-      doiLinks: r.doiLinks ?? [],
-      externalSources: r.externalSources ?? [],
-      status: r.status,
-      seoTitle: r.seoTitle ?? "",
-      metaDescription: r.metaDescription ?? "",
-    });
-  }, [existing, id]);
+  // Hydrate the form when the fetched record arrives — "adjust state when a
+  // value changes" pattern (guarded by a previous-value comparison).
+  const [prevExisting, setPrevExisting] = useState(existing);
+  if (existing !== prevExisting) {
+    setPrevExisting(existing);
+    if (existing && id !== "new") {
+      const r = existing;
+      setForm({
+        title: r.title ?? "",
+        titleBn: r.titleBn ?? "",
+        excerpt: r.excerpt ?? "",
+        contentType: r.contentType ?? "research-guide",
+        authorId: r.authorId ?? "",
+        tags: r.tags ?? [],
+        featured: r.featured,
+        readingTime: r.readingTime ?? "5 min read",
+        blocks: (r.blocks ?? []) as Block[],
+        relatedResources: r.relatedResources ?? [],
+        relatedCourses: r.relatedCourses ?? [],
+        references: r.references ?? [],
+        doiLinks: r.doiLinks ?? [],
+        externalSources: r.externalSources ?? [],
+        status: r.status,
+        seoTitle: r.seoTitle ?? "",
+        metaDescription: r.metaDescription ?? "",
+      });
+    }
+  }
 
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) =>
     setForm((f) => ({ ...f, [k]: v }));

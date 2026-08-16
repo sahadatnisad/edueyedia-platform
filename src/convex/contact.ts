@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation } from "./_generated/server";
+import { api } from "./_generated/api";
 
 /**
  * Contact form submissions — stored in the contactMessages table (never lost)
@@ -51,7 +52,7 @@ export const submitContact = mutation({
       await ctx.db.patch(row._id, { count: row.count + 1 });
     }
 
-    await ctx.db.insert("contactMessages", {
+    const messageId = await ctx.db.insert("contactMessages", {
       name: trimmedName,
       email: trimmedEmail,
       topic: trimmedTopic || "General",
@@ -59,6 +60,17 @@ export const submitContact = mutation({
       status: "new",
       createdAt: now,
     });
-    return { ok: true as const, stored: true as const };
+
+    // Staff notification via the shared email provider (Resend → VLY → honest
+    // skip when no provider / CONTACT_EMAIL is set). Scheduled so a delivery
+    // failure never fails the visitor's submission — the message is stored.
+    await ctx.scheduler.runAfter(0, api.email.sendContactNotification, {
+      name: trimmedName,
+      email: trimmedEmail,
+      topic: trimmedTopic || "General",
+      message: trimmedMessage,
+    });
+
+    return { ok: true as const, stored: true as const, messageId };
   },
 });

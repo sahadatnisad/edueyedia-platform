@@ -86,14 +86,19 @@ function Carousel({
     [scrollPrev, scrollNext]
   )
 
-  React.useEffect(() => {
-    if (!api || !setApi) return
-    setApi(api)
-  }, [api, setApi])
+  // Publish the Embla instance to the parent and seed the scroll state once
+  // the api exists. This is the React-documented "adjust state when a value
+  // changes" pattern: the updates are conditional on a previous-value
+  // comparison, so they settle after one render instead of looping.
+  const [prevApi, setPrevApi] = React.useState(api)
+  if (api !== prevApi) {
+    setPrevApi(api)
+    if (api && setApi) setApi(api)
+    if (api) onSelect(api)
+  }
 
   React.useEffect(() => {
     if (!api) return
-    onSelect(api)
     api.on("reInit", onSelect)
     api.on("select", onSelect)
 

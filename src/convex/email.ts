@@ -252,3 +252,105 @@ export const sendCourseEnrollment = action({
     return await deliver(email, `Enrolled — ${title}`, layout("Enrollment confirmed ✓", body));
   },
 });
+
+/* --------------------------- newsletter welcome -------------------- */
+
+export const sendNewsletterWelcome = action({
+  args: {
+    email: v.string(),
+    unsubscribeToken: v.string(),
+  },
+  handler: async (
+    ctx,
+    { email, unsubscribeToken },
+  ): Promise<{ sent: boolean }> => {
+    if (!email) return { sent: false as const };
+    const base = siteUrl();
+    const unsubscribeUrl = `${base}/unsubscribe?token=${encodeURIComponent(unsubscribeToken)}`;
+
+    const body = `
+      <p style="margin:0 0 16px;color:#334155;font-size:14px;line-height:1.7;">
+        ধন্যবাদ! আপনি এখন <strong>Edueyedia Letter</strong>-এর সদস্য। গবেষণা
+        ইনসাইট, স্কলারশিপ সুযোগ এবং নতুন প্রকাশনা — মাসে একবার, কোনো স্প্যাম নেই।
+      </p>
+      <p style="margin:0 0 16px;color:#334155;font-size:14px;line-height:1.7;">
+        This is the English edition of the same letter — research insights,
+        scholarship opportunities and new Edueyedia publications.
+      </p>
+      <table role="presentation" cellpadding="0" cellspacing="0">
+        <tr>
+          <td style="background:#0F766E;border-radius:999px;padding:12px 24px;">
+            <a href="${base}/research" style="color:#ffffff;font-size:14px;font-weight:700;text-decoration:none;">Explore the Research Hub</a>
+          </td>
+        </tr>
+      </table>
+      <p style="margin:24px 0 0;color:#94a3b8;font-size:11px;line-height:1.6;">
+        You can unsubscribe anytime:
+        <a href="${unsubscribeUrl}" style="color:#0F766E;text-decoration:none;">Unsubscribe from the Edueyedia Letter</a>.
+      </p>`;
+
+    return await deliver(
+      email,
+      "Welcome to the Edueyedia Letter",
+      layout("Welcome to the Edueyedia Letter ✓", body),
+    );
+  },
+});
+
+/* --------------------------- contact notification ------------------ */
+
+export const sendContactNotification = action({
+  args: {
+    name: v.string(),
+    email: v.string(),
+    topic: v.string(),
+    message: v.string(),
+  },
+  handler: async (
+    ctx,
+    { name, email, topic, message },
+  ): Promise<{ sent: boolean; skipped?: boolean }> => {
+    const to = (process.env.CONTACT_EMAIL ?? "").trim();
+    if (!to) {
+      console.warn(
+        "[email] CONTACT_EMAIL not set — staff notification skipped for contact from",
+        email,
+      );
+      return { sent: false as const, skipped: true as const };
+    }
+
+    const body = `
+      <p style="margin:0 0 12px;color:#334155;font-size:14px;line-height:1.7;">
+        New contact form submission on <strong>Edueyedia</strong>.
+      </p>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #E2E8F0;border-radius:12px;margin:0 0 16px;">
+        <tr><td style="padding:10px 16px;color:#152238;font-size:13px;font-weight:600;">Name</td><td style="padding:10px 16px;color:#334155;font-size:13px;">${escapeHtml(name)}</td></tr>
+        <tr><td style="padding:10px 16px;color:#152238;font-size:13px;font-weight:600;">Email</td><td style="padding:10px 16px;color:#334155;font-size:13px;">${escapeHtml(email)}</td></tr>
+        <tr><td style="padding:10px 16px;color:#152238;font-size:13px;font-weight:600;">Topic</td><td style="padding:10px 16px;color:#334155;font-size:13px;">${escapeHtml(topic)}</td></tr>
+        <tr><td colspan="2" style="padding:10px 16px;color:#152238;font-size:13px;font-weight:600;">Message</td></tr>
+        <tr><td colspan="2" style="padding:0 16px 14px;color:#334155;font-size:13px;line-height:1.7;white-space:pre-wrap;">${escapeHtml(message)}</td></tr>
+      </table>
+      <p style="margin:0;color:#94a3b8;font-size:11px;">Reply from the Admin → Inbox in the Edueyedia console.</p>`;
+
+    try {
+      return await deliver(
+        to,
+        `New contact message — ${escapeHtml(topic) || "General"}`,
+        layout("New contact message", body),
+      );
+    } catch (err) {
+      // A notification failure must never surface to the visitor — the
+      // message is already stored in Convex. Log and report honestly.
+      console.warn("[email] Contact notification failed:", err);
+      return { sent: false as const };
+    }
+  },
+});
+
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}

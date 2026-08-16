@@ -35,6 +35,8 @@ const COLUMNS: { title: string; links: { label: string; to: string }[] }[] = [
       { label: "Terms", to: "/terms" },
       { label: "Refund Policy", to: "/refund-policy" },
       { label: "Digital Product Policy", to: "/digital-product-policy" },
+      { label: "Copyright", to: "/copyright" },
+      { label: "Disclaimer", to: "/disclaimer" },
     ],
   },
 ];

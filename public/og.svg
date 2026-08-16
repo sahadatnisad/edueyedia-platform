@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <!-- Academic navy background -->
+  <rect width="1200" height="630" fill="#152238"/>
+  <!-- Subtle line-grid texture -->
+  <g stroke="#ffffff" stroke-opacity="0.045" stroke-width="1">
+    <line x1="0" y1="90" x2="1200" y2="90"/>
+    <line x1="0" y1="180" x2="1200" y2="180"/>
+    <line x1="0" y1="270" x2="1200" y2="270"/>
+    <line x1="0" y1="360" x2="1200" y2="360"/>
+    <line x1="0" y1="450" x2="1200" y2="450"/>
+    <line x1="0" y1="540" x2="1200" y2="540"/>
+    <line x1="150" y1="0" x2="150" y2="630"/>
+    <line x1="300" y1="0" x2="300" y2="630"/>
+    <line x1="450" y1="0" x2="450" y2="630"/>
+    <line x1="600" y1="0" x2="600" y2="630"/>
+    <line x1="750" y1="0" x2="750" y2="630"/>
+    <line x1="900" y1="0" x2="900" y2="630"/>
+    <line x1="1050" y1="0" x2="1050" y2="630"/>
+  </g>
+  <!-- Teal glow -->
+  <circle cx="1050" cy="90" r="240" fill="#0F766E" opacity="0.18"/>
+  <!-- Gold accent bar -->
+  <rect x="80" y="196" width="64" height="8" rx="4" fill="#D6A84B"/>
+  <!-- Eyebrow -->
+  <text x="80" y="168" font-family="Inter, Helvetica, Arial, sans-serif" font-size="26" font-weight="700" letter-spacing="14" fill="#9fb2c8">EDUEYEDIA KNOWLEDGE PLATFORM</text>
+  <!-- Headline -->
+  <text x="80" y="320" font-family="Hind Siliguri, 'Noto Sans Bengali', sans-serif" font-size="72" font-weight="600" fill="#ffffff">জ্ঞান, গবেষণা ও সুযোগকে</text>
+  <text x="80" y="404" font-family="Hind Siliguri, 'Noto Sans Bengali', sans-serif" font-size="72" font-weight="600" fill="#ffffff">নতুনভাবে আবিষ্কার করুন</text>
+  <!-- Tagline -->
+  <text x="80" y="474" font-family="'DM Serif Display', Georgia, serif" font-size="40" font-style="italic" fill="#D6A84B">Research. Learn. Advance.</text>
+  <!-- Footer -->
+  <text x="80" y="560" font-family="Inter, Helvetica, Arial, sans-serif" font-size="22" font-weight="600" letter-spacing="6" fill="#9fb2c8">EDUEYEDIA</text>
+  <!-- Abstract research node mark, right side -->
+  <g transform="translate(880, 250)" stroke="#0F766E" stroke-width="3" fill="none">
+    <circle cx="0" cy="0" r="70" stroke-opacity="0.35"/>
+    <circle cx="140" cy="60" r="46" stroke-opacity="0.6"/>
+    <circle cx="70" cy="150" r="30" stroke-opacity="0.9"/>
+    <line x1="62" y1="38" x2="102" y2="48" stroke-opacity="0.5"/>
+    <line x1="28" y1="96" x2="52" y2="128" stroke-opacity="0.7"/>
+  </g>
+  <circle cx="950" cy="288" r="9" fill="#D6A84B"/>
+  <circle cx="1020" cy="310" r="7" fill="#0F766E"/>
+  <circle cx="950" cy="400" r="6" fill="#ffffff" fill-opacity="0.85"/>
+</svg>

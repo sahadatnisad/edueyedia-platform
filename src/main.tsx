@@ -34,6 +34,7 @@ const CourseLearn = lazy(() => import("./pages/CourseLearn.tsx"));
 const About = lazy(() => import("./pages/About.tsx"));
 const Contact = lazy(() => import("./pages/Contact.tsx"));
 const FAQ = lazy(() => import("./pages/FAQ.tsx"));
+const Unsubscribe = lazy(() => import("./pages/Unsubscribe.tsx"));
 const LegalPage = lazy(() => import("./pages/LegalPage.tsx"));
 const Checkout = lazy(() => import("./pages/Checkout.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
@@ -63,6 +64,7 @@ const AdminAuthorEditor = lazy(() =>
 const AdminOrders = lazy(() => import("./pages/admin/AdminOrders.tsx"));
 const AdminSettings = lazy(() => import("./pages/admin/AdminSettings.tsx"));
 const AdminInbox = lazy(() => import("./pages/admin/AdminInbox.tsx"));
+const AdminNewsletter = lazy(() => import("./pages/admin/AdminNewsletter.tsx"));
 
 // Simple loading fallback for route transitions
 function RouteLoading() {
@@ -218,6 +220,7 @@ createRoot(document.getElementById("root")!).render(
                   <Route path="/about" element={<About />} />
                   <Route path="/contact" element={<Contact />} />
                   <Route path="/faq" element={<FAQ />} />
+                  <Route path="/unsubscribe" element={<Unsubscribe />} />
                   <Route path="/privacy" element={<LegalPage page="privacy" />} />
                   <Route path="/terms" element={<LegalPage page="terms" />} />
                   <Route path="/refund-policy" element={<LegalPage page="refund" />} />
@@ -270,6 +273,7 @@ createRoot(document.getElementById("root")!).render(
                     <Route path="authors/new" element={<AdminAuthorEditor />} />
                     <Route path="authors/:id" element={<AdminAuthorEditor />} />
                     <Route path="orders" element={<AdminOrders />} />
+                    <Route path="newsletter" element={<AdminNewsletter />} />
                     <Route path="settings" element={<AdminSettings />} />
                   </Route>
                   <Route path="*" element={<NotFound />} />

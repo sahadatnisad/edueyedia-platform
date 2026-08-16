@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { useMutation, useQuery } from "convex/react";
 import { toast } from "sonner";
@@ -315,40 +315,45 @@ export function AdminResourceEditor() {
     (f) => f.kind === "main" && f.status === "active",
   );
 
-  useEffect(() => {
-    if (!existing || id === "new") return;
-    const r = existing;
-    setForm({
-      title: r.title ?? "",
-      titleBn: r.titleBn ?? "",
-      shortDescription: r.shortDescription ?? "",
-      description: r.description ?? "",
-      categoryId: r.categoryId ?? "research",
-      tags: r.tags ?? [],
-      type: r.type,
-      price: String(r.price ?? 0),
-      compareAt: r.compareAt != null ? String(r.compareAt) : "",
-      currency: r.currency ?? "BDT",
-      isFree: r.isFree,
-      format: r.format ?? "",
-      language: r.language ?? "",
-      pageCount: String(r.pageCount ?? 0),
-      coverTone: r.coverTone,
-      coverPattern: r.coverPattern,
-      coverGlyph: r.coverGlyph ?? "",
-      includes: r.includes ?? [],
-      audience: r.audience ?? [],
-      related: r.related ?? [],
-      faqs: faqLines(r.faqs ?? []),
-      previewPages: previewLines(r.previewPages ?? []),
-      status: r.status,
-      featured: r.featured,
-      popular: r.popular,
-      bestseller: r.bestseller,
-      seoTitle: r.seoTitle ?? "",
-      metaDescription: r.metaDescription ?? "",
-    });
-  }, [existing, id]);
+  // Hydrate the form when the fetched record arrives — "adjust state when a
+  // value changes" pattern (guarded by a previous-value comparison).
+  const [prevExisting, setPrevExisting] = useState(existing);
+  if (existing !== prevExisting) {
+    setPrevExisting(existing);
+    if (existing && id !== "new") {
+      const r = existing;
+      setForm({
+        title: r.title ?? "",
+        titleBn: r.titleBn ?? "",
+        shortDescription: r.shortDescription ?? "",
+        description: r.description ?? "",
+        categoryId: r.categoryId ?? "research",
+        tags: r.tags ?? [],
+        type: r.type,
+        price: String(r.price ?? 0),
+        compareAt: r.compareAt != null ? String(r.compareAt) : "",
+        currency: r.currency ?? "BDT",
+        isFree: r.isFree,
+        format: r.format ?? "",
+        language: r.language ?? "",
+        pageCount: String(r.pageCount ?? 0),
+        coverTone: r.coverTone,
+        coverPattern: r.coverPattern,
+        coverGlyph: r.coverGlyph ?? "",
+        includes: r.includes ?? [],
+        audience: r.audience ?? [],
+        related: r.related ?? [],
+        faqs: faqLines(r.faqs ?? []),
+        previewPages: previewLines(r.previewPages ?? []),
+        status: r.status,
+        featured: r.featured,
+        popular: r.popular,
+        bestseller: r.bestseller,
+        seoTitle: r.seoTitle ?? "",
+        metaDescription: r.metaDescription ?? "",
+      });
+    }
+  }
 
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
@@ -386,10 +391,15 @@ export function AdminResourceEditor() {
         seoTitle: form.seoTitle || undefined,
         metaDescription: form.metaDescription || undefined,
       };
-      // Publish guard: a paid published resource must have a real file
-      // attached — never sell an empty PDF.
-      if (form.status === "published" && !form.isFree && !activeFile) {
-        toast.error("Attach a PDF file before publishing a paid resource.");
+      // Publish guard: any published downloadable resource must have a real
+      // file attached (the server enforces this too) — never sell or promise
+      // a download that cannot be delivered.
+      if (form.status === "published" && !activeFile) {
+        toast.error(
+          form.isFree
+            ? "Attach the PDF before publishing — a free resource still delivers a real file."
+            : "Attach a PDF file before publishing a paid resource.",
+        );
         return;
       }
 
@@ -458,6 +468,64 @@ export function AdminResourceEditor() {
       onSave={handleSave}
       saving={saving}
     >
+      {/* Publish readiness checklist — a compact pre-launch indicator. */}
+      <div className="rounded-3xl border border-hairline bg-white p-5 dark:border-white/10 dark:bg-navy-surface">
+        <h2 className="font-serif text-lg text-navy dark:text-slate-100">
+          Publish readiness
+        </h2>
+        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+          {(
+            [
+              {
+                label: "File attached",
+                ok: Boolean(activeFile),
+                note: activeFile ? activeFile.filename : "None yet",
+              },
+              {
+                label: "Price configured",
+                ok: form.isFree || (Number(form.price) || 0) > 0,
+                note: form.isFree ? "Free" : `৳${Number(form.price) || 0}`,
+              },
+              {
+                label: "SEO title + description",
+                ok: Boolean(form.seoTitle.trim() && form.metaDescription.trim()),
+                note: form.seoTitle.trim() ? "Set" : "Missing",
+              },
+              {
+                label: "Status",
+                ok: form.status === "published",
+                note: form.status,
+              },
+            ] as const
+          ).map((item) => (
+            <div
+              key={item.label}
+              className="flex items-center justify-between gap-2 rounded-xl bg-cool/50 px-3 py-2 text-xs dark:bg-white/[0.03]"
+            >
+              <span className="flex items-center gap-2 font-medium text-navy dark:text-slate-200">
+                <span
+                  className={`flex size-4 items-center justify-center rounded-full text-[10px] font-bold ${
+                    item.ok
+                      ? "bg-teal/15 text-teal dark:text-teal-bright"
+                      : "bg-slate-200 text-slate-500 dark:bg-white/10 dark:text-slate-400"
+                  }`}
+                >
+                  {item.ok ? "✓" : "·"}
+                </span>
+                {item.label}
+              </span>
+              <span className="max-w-32 truncate text-[10px] text-ink-soft dark:text-slate-400">
+                {item.note}
+              </span>
+            </div>
+          ))}
+        </div>
+        <p className="mt-3 text-[11px] text-ink-soft dark:text-slate-400">
+          Seed/demo records are never production-ready just because they were
+          seeded — move them to Draft until real files and content replace them.
+        </p>
+      </div>
+
       <div className="rounded-3xl border border-hairline bg-white p-5 dark:border-white/10 dark:bg-navy-surface">
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Title (English)" hint="The slug is generated from this title.">
@@ -636,9 +704,9 @@ export function AdminResourceEditor() {
                   <Trash2 className="size-3.5" /> Remove
                 </Button>
               )}
-              {!activeFile && !form.isFree && (
+              {!activeFile && (
                 <span className="text-[11px] font-semibold text-gold">
-                  Required before publishing a paid resource.
+                  Required before publishing{form.isFree ? "" : " a paid"} resource.
                 </span>
               )}
             </div>
