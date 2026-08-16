@@ -15,10 +15,8 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Reveal } from "@/components/Reveal";
 import { SectionHeading } from "@/components/SectionHeading";
-import { resources } from "@/data/catalog";
-
-/** Total reader reviews across the published library (from the catalog). */
-const totalReviews = resources.reduce((sum, r) => sum + r.reviewCount, 0);
+import { useAllContent } from "@/hooks/use-content";
+import { resources as legacyResources } from "@/data/catalog";
 
 const PRINCIPLE_STRIP = [
   {
@@ -157,9 +155,10 @@ const STORY = [
     bn: "প্রতিশ্রুতি",
     copy: "Keep knowledge simple, keep opportunities within reach, and keep every page honest. Research. Learn. Advance.",
   },
-];
-
-export default function About() {
+];export default function About() {
+  // Live published-resource count (legacy fallback while the DB loads).
+  const content = useAllContent();
+  const totalResources = content?.resources.length ?? legacyResources.length;
 
   return (
     <div className="min-h-screen bg-ivory dark:bg-navy-deep">
@@ -293,15 +292,15 @@ export default function About() {
                     </div>
                   </div>
                 </Reveal>
-                {/* reader count */}
+                {/* live library count — real number, never fabricated */}
                 <Reveal delay={0.45} y={20}>
                   <div className="absolute bottom-[8%] right-[4%] w-[46%] rotate-[1deg]">
                     <div className="rounded-2xl bg-teal p-5 text-white shadow-[0_24px_48px_-20px_rgba(15,118,110,0.5)]">
                       <p className="font-serif text-3xl text-white">
-                        {totalReviews.toLocaleString()}+
+                        {totalResources.toLocaleString()}
                       </p>
                       <p className="mt-1 text-[11px] font-semibold text-teal-50/90">
-                        reader reviews across the library
+                        published resources in the library
                       </p>
                     </div>
                   </div>

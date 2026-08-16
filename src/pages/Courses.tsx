@@ -7,7 +7,8 @@ import { Footer } from "@/components/Footer";
 import { Reveal } from "@/components/Reveal";
 import { SectionHeading } from "@/components/SectionHeading";
 import { CourseCover } from "@/components/CourseCover";
-import { courses, courseCategories, type Course } from "@/data/courses";
+import { useAllContent } from "@/hooks/use-content";
+import { courses as legacyCourses, type Course } from "@/data/courses";
 
 const FILTERS: { id: string; label: string }[] = [
   { id: "All", label: "All" },
@@ -22,6 +23,10 @@ const FILTERS: { id: string; label: string }[] = [
 export default function Courses() {
   const [filter, setFilter] = useState("All");
 
+  // Database-backed courses (published + coming-soon), with legacy fallback.
+  const content = useAllContent();
+  const courses = content?.courses ?? legacyCourses;
+
   const results = useMemo(() => {
     let list = [...courses];
     if (filter === "Free") list = list.filter((c) => c.isFree);
@@ -30,7 +35,7 @@ export default function Courses() {
       list = list.filter((c) => c.category === filter);
     }
     return list;
-  }, [filter]);
+  }, [filter, courses]);
 
   const featured = courses.find((c) => c.status === "published") ?? courses[0];
 

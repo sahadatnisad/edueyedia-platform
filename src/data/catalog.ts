@@ -98,6 +98,7 @@ export interface Collection {
 export type ArticleBlock =
   | { type: "p"; text: string }
   | { type: "h2"; text: string; id: string }
+  | { type: "h3"; text: string; id: string }
   | { type: "quote"; text: string; source?: string }
   | {
       type: "callout";

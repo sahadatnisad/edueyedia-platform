@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import {
   CommandDialog,
@@ -9,70 +9,48 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { useSite } from "@/components/site/SiteContext";
+import { useAllContent, useSearchContent } from "@/hooks/use-content";
 import {
-  articles,
-  resources,
-  scholarships,
+  articles as legacyArticles,
+  resources as legacyResources,
 } from "@/data/catalog";
+import { courses as legacyCourses } from "@/data/courses";
 import { articlePath } from "@/data/navigation";
 import {
   BookOpen,
   FileText,
+  FlaskConical,
   GraduationCap,
-  Hash,
 } from "lucide-react";
 
 interface SearchEntry {
   id: string;
   title: string;
   subtitle: string;
-  group: "Blog" | "Resources" | "Scholarships" | "Topics";
+  group: "RESEARCH" | "RESOURCES" | "BLOG" | "COURSES";
   to: string;
   value: string;
 }
 
-const TOPICS: { title: string; subtitle: string; to: string; value: string }[] = [
-  {
-    title: "Research",
-    subtitle: "গবেষণা — proposals, methodology, publishing",
-    to: "/resources?tab=research",
-    value: "research গবেষণা proposal methodology thesis publishing",
-  },
-  {
-    title: "Scholarships",
-    subtitle: "স্কলারশিপ — funded study, applications",
-    to: "/resources?tab=scholarships",
-    value: "scholarships স্কলারশিপ funded fellowship grants",
-  },
-  {
-    title: "Academic Writing",
-    subtitle: "অ্যাকাডেমিক রাইটিং — SOP, citations, phrases",
-    to: "/resources?tab=academic-writing",
-    value: "academic writing অ্যাকাডেমিক রাইটিং sop citation essay",
-  },
-  {
-    title: "Study Abroad",
-    subtitle: "বিদেশে উচ্চশিক্ষা — admissions, tests, budgets",
-    to: "/resources?tab=study-abroad",
-    value: "study abroad বিদেশে উচ্চশিক্ষা ielts toefl admission",
-  },
-  {
-    title: "Free Resources",
-    subtitle: "The Edueyedia Library — free templates & checklists",
-    to: "/resources?tab=free",
-    value: "free resources library templates checklists ফ্রি",
-  },
-  {
-    title: "Blog",
-    subtitle: "গবেষণা, শিক্ষা ও সুযোগ নিয়ে নির্বাচিত লেখা — articles & guides",
-    to: "/blog",
-    value: "blog insights articles guides গবেষণা শিক্ষা জ্ঞান গাইড বিশ্লেষণ",
-  },
-];
+const GROUP_ICON: Record<SearchEntry["group"], typeof BookOpen> = {
+  RESEARCH: FlaskConical,
+  RESOURCES: FileText,
+  BLOG: BookOpen,
+  COURSES: GraduationCap,
+};
 
 export function SearchCommand() {
   const { searchOpen, setSearchOpen } = useSite();
   const navigate = useNavigate();
+  const [q, setQ] = useState("");
+
+  const results = useSearchContent(q);
+  const all = useAllContent();
+
+  // Reset the query whenever the dialog opens.
+  useEffect(() => {
+    if (searchOpen) setQ("");
+  }, [searchOpen]);
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
@@ -92,57 +70,74 @@ export function SearchCommand() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [searchOpen, setSearchOpen]);
 
-  const entries = useMemo<SearchEntry[]>(() => {
-    const resourceEntries: SearchEntry[] = resources.map((r) => ({
-      id: `r-${r.slug}`,
-      title: r.titleBn ?? r.title,
-      subtitle: `${r.title} • ${r.tag} • ${r.kind === "free" ? "Free" : `৳${r.price}`}`,
-      group: "Resources",
-      to: `/resources/${r.slug}`,
-      value: `${r.title} ${r.titleBn ?? ""} ${r.tag} ${r.tagBn ?? ""} ${r.summary} ${r.format} ${r.category}`,
-    }));
+  // Search the published database. With no query we show the full published
+  // index so the dialog is useful on open; legacy data is only a fallback
+  // while the first Convex payload loads.
+  const active = q.trim().length >= 2;
+  const research =
+    (active ? results?.research : all?.research) ?? legacyArticles.filter((a) => a.category === "research");
+  const resources =
+    (active ? results?.resources : all?.resources) ?? legacyResources;
+  const blog =
+    (active ? results?.blog : all?.blog) ??
+    legacyArticles.filter((a) => a.category !== "research");
+  const courses = (active ? results?.courses : all?.courses) ?? legacyCourses;
 
-    const articleEntries: SearchEntry[] = articles.map((a) => ({
-      id: `a-${a.slug}`,
+  const entries = useMemo<SearchEntry[]>(() => {
+    const researchEntries: SearchEntry[] = research.map((a) => ({
+      id: `r-${a.slug}`,
       title: a.title,
       subtitle: `${a.titleBn ?? ""} • ${a.categoryLabel} • ${a.readingTime}`,
-      group: "Blog",
+      group: "RESEARCH",
       to: articlePath(a),
       value: `${a.title} ${a.titleBn ?? ""} ${a.categoryLabel} ${a.excerpt} ${a.keywords.join(" ")}`,
     }));
 
-    const scholarshipEntries: SearchEntry[] = scholarships.map((s) => ({
-      id: `s-${s.slug}`,
-      title: s.name,
-      subtitle: `${s.country} • ${s.degree} • ${s.funding} • Deadline ${s.deadline}`,
-      group: "Scholarships",
-      to: "/resources?tab=scholarships",
-      value: `${s.name} ${s.country} ${s.degree} ${s.funding} ${s.deadline} ${s.region} scholarship স্কলারশিপ`,
+    const resourceEntries: SearchEntry[] = resources.map((r) => ({
+      id: `p-${r.slug}`,
+      title: r.titleBn ?? r.title,
+      subtitle: `${r.title} • ${r.tag} • ${r.kind === "free" ? "Free" : `৳${r.price}`}`,
+      group: "RESOURCES",
+      to: `/resources/${r.slug}`,
+      value: `${r.title} ${r.titleBn ?? ""} ${r.tag} ${r.summary} ${r.format} ${r.category}`,
     }));
 
-    const topicEntries: SearchEntry[] = TOPICS.map((t, i) => ({
-      id: `t-${i}`,
-      title: t.title,
-      subtitle: t.subtitle,
-      group: "Topics",
-      to: t.to,
-      value: t.value,
+    const blogEntries: SearchEntry[] = blog.map((a) => ({
+      id: `b-${a.slug}`,
+      title: a.title,
+      subtitle: `${a.titleBn ?? ""} • ${a.categoryLabel} • ${a.readingTime}`,
+      group: "BLOG",
+      to: articlePath(a),
+      value: `${a.title} ${a.titleBn ?? ""} ${a.categoryLabel} ${a.excerpt} ${a.keywords.join(" ")}`,
     }));
 
-    return [...articleEntries, ...resourceEntries, ...scholarshipEntries, ...topicEntries];
-  }, []);
+    const courseEntries: SearchEntry[] = courses.map((c) => ({
+      id: `c-${c.slug}`,
+      title: c.titleBn,
+      subtitle: `${c.title} • ${c.category} • ${c.isFree ? "Free" : `৳${c.price}`} • ${c.duration}`,
+      group: "COURSES",
+      to: `/courses/${c.slug}`,
+      value: `${c.title} ${c.titleBn} ${c.category} ${c.categoryBn} ${c.shortDescription}`,
+    }));
 
-  const groups: SearchEntry["group"][] = ["Blog", "Resources", "Scholarships", "Topics"];
+    return [...researchEntries, ...resourceEntries, ...blogEntries, ...courseEntries];
+  }, [research, resources, blog, courses]);
+
+  const groups: SearchEntry["group"][] = ["RESEARCH", "RESOURCES", "BLOG", "COURSES"];
 
   return (
     <CommandDialog
       open={searchOpen}
       onOpenChange={setSearchOpen}
       title="Search Edueyedia"
-      description="Search resources, articles, scholarships and topics"
+      description="Search research, resources, blog and courses — Bangla or English"
       className="sm:max-w-2xl"
     >
-      <CommandInput placeholder="কী খুঁজছেন? Research, Scholarship, SOP..." />
+      <CommandInput
+        placeholder="কী খুঁজছেন? Research, Scholarship, SOP..."
+        value={q}
+        onValueChange={setQ}
+      />
       <CommandList className="max-h-[420px]">
         <CommandEmpty className="py-10 text-sm text-muted-foreground">
           No results found — try a broader term like{" "}
@@ -151,6 +146,7 @@ export function SearchCommand() {
         {groups.map((group) => {
           const items = entries.filter((e) => e.group === group);
           if (items.length === 0) return null;
+          const Icon = GROUP_ICON[group];
           return (
             <CommandGroup key={group} heading={group}>
               {items.map((item) => (
@@ -163,18 +159,7 @@ export function SearchCommand() {
                   }}
                   className="flex items-start gap-3 py-3"
                 >
-                  {item.group === "Blog" && (
-                    <BookOpen className="mt-0.5 size-4 shrink-0 text-teal" />
-                  )}
-                  {item.group === "Resources" && (
-                    <FileText className="mt-0.5 size-4 shrink-0 text-gold" />
-                  )}
-                  {item.group === "Scholarships" && (
-                    <GraduationCap className="mt-0.5 size-4 shrink-0 text-sky-600 dark:text-sky-300" />
-                  )}
-                  {item.group === "Topics" && (
-                    <Hash className="mt-0.5 size-4 shrink-0 text-slate-400" />
-                  )}
+                  <Icon className="mt-0.5 size-4 shrink-0 text-teal" />
                   <span className="flex flex-col gap-0.5">
                     <span className="font-medium">{item.title}</span>
                     <span className="text-xs text-muted-foreground line-clamp-1">

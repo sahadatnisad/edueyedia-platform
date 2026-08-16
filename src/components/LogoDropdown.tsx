@@ -10,11 +10,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import logo from "@/assets/logo.svg";
 import { useAuth } from "@/hooks/use-auth";
-import { Home, LogOut } from "lucide-react";
+import { useIsAdmin } from "@/hooks/use-content";
+import { Home, LayoutDashboard, LogOut, ShieldCheck } from "lucide-react";
 import { useNavigate } from "react-router";
 
 export function LogoDropdown() {
   const { isAuthenticated, signOut } = useAuth();
+  const isAdmin = useIsAdmin();
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
@@ -50,6 +52,23 @@ export function LogoDropdown() {
         </DropdownMenuItem>
         {isAuthenticated && (
           <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={() => navigate("/dashboard")}
+              className="cursor-pointer"
+            >
+              <LayoutDashboard className="mr-2 h-4 w-4" />
+              Dashboard
+            </DropdownMenuItem>
+            {isAdmin && (
+              <DropdownMenuItem
+                onClick={() => navigate("/admin")}
+                className="cursor-pointer"
+              >
+                <ShieldCheck className="mr-2 h-4 w-4" />
+                Admin Console
+              </DropdownMenuItem>
+            )}
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={handleSignOut}

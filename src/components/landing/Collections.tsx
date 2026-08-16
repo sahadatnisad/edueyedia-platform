@@ -3,8 +3,9 @@ import { ArrowRight, ArrowUpRight, Layers } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SectionHeading } from "@/components/SectionHeading";
 import { Reveal } from "@/components/Reveal";
-import { collections, getResource } from "@/data/catalog";
-import type { CoverStyle } from "@/data/catalog";
+import { useAllContent, useSiteSetting } from "@/hooks/use-content";
+import { collections as legacyCollections, getResource } from "@/data/catalog";
+import type { Collection, CoverStyle } from "@/data/catalog";
 
 const TONES: Record<CoverStyle["tone"], string> = {
   navy: "from-[#1B2C4A] via-[#152238] to-[#0C1626]",
@@ -19,7 +20,7 @@ function CollectionCover({
   collection,
   className,
 }: {
-  collection: (typeof collections)[number];
+  collection: Collection;
   className?: string;
 }) {
   const dark = collection.cover.tone === "ivory" || collection.cover.tone === "gold";
@@ -88,6 +89,14 @@ function CollectionCover({
 }
 
 export function Collections() {
+  // Collections are a DB site setting; resource lookups resolve against
+  // published DB content with legacy fallback while loading.
+  const setting = useSiteSetting("collections");
+  const all = useAllContent();
+  const collections = (setting ?? legacyCollections) as Collection[];
+  const getResourceDb = (slug: string) =>
+    all?.resources.find((r) => r.slug === slug) ?? getResource(slug);
+
   return (
     <section className="relative overflow-hidden bg-ivory py-20 sm:py-28 dark:bg-navy-deep">
       <span
@@ -107,7 +116,7 @@ export function Collections() {
         <div className="mt-12 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
           {collections.map((collection, i) => {
             const items = collection.resourceSlugs
-              .map(getResource)
+              .map(getResourceDb)
               .filter(Boolean);
             const span =
               i === 0

@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/sheet";
 import { useSite } from "@/components/site/SiteContext";
 import { useAuth } from "@/hooks/use-auth";
+import { useResourcesBySlugs } from "@/hooks/use-content";
 import { BookCover } from "@/components/BookCover";
 import { getResource } from "@/data/catalog";
 import { ArrowRight, Lock, ShoppingBag, Trash2 } from "lucide-react";
@@ -19,6 +20,11 @@ export function CartDrawer() {
     useSite();
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
+
+  // Resolve cart covers against published DB resources (legacy fallback).
+  const dbResources = useResourcesBySlugs(cart.map((c) => c.slug));
+  const resourceFor = (slug: string) =>
+    dbResources?.find((r) => r.slug === slug) ?? getResource(slug);
 
   const handleCheckout = () => {
     if (cart.length === 0) return;
@@ -66,7 +72,7 @@ export function CartDrawer() {
             <div className="flex-1 overflow-y-auto px-6 py-4">
               <ul className="flex flex-col gap-4">
                 {cart.map((item) => {
-                  const resource = getResource(item.slug);
+                  const resource = resourceFor(item.slug);
                   return (
                     <li key={item.slug} className="flex gap-4">
                       <Link

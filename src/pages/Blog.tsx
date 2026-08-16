@@ -6,13 +6,15 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Reveal } from "@/components/Reveal";
 import { ArticleCard } from "@/components/ArticleCard";
-import { articles } from "@/data/catalog";
-import { extraArticles } from "@/data/extraArticles";
+import { useAllContent } from "@/hooks/use-content";
+import { articles as legacyArticles } from "@/data/catalog";
+import { extraArticles as legacyExtraArticles } from "@/data/extraArticles";
 
-/** Blog = broader education & opportunity content (research lives in /research). */
-const blogArticles = [
-  ...articles.filter((a) => a.category !== "research"),
-  ...extraArticles.filter((a) => a.category !== "research"),
+/** Blog = broader education & opportunity content (research lives in /research).
+ *  Legacy fallback while the first Convex payload loads. */
+const legacyBlogArticles = [
+  ...legacyArticles.filter((a) => a.category !== "research"),
+  ...legacyExtraArticles.filter((a) => a.category !== "research"),
 ];
 
 const FILTERS = [
@@ -28,14 +30,18 @@ type FilterId = (typeof FILTERS)[number]["id"];
 export default function Blog() {
   const [filter, setFilter] = useState<FilterId>("all");
 
+  // Database-backed blog posts (published only), with legacy fallback.
+  const content = useAllContent();
+  const blogArticles = content?.blog ?? legacyBlogArticles;
+
   const featured = blogArticles.find((a) => a.featured) ?? blogArticles[0];
 
   const results = useMemo(() => {
     if (filter === "all") {
-      return blogArticles.filter((a) => a.slug !== featured.slug);
+      return blogArticles.filter((a) => a.slug !== featured?.slug);
     }
     return blogArticles.filter((a) => a.category === filter);
-  }, [filter, featured.slug]);
+  }, [filter, featured?.slug, blogArticles]);
 
   const featuredInFilter = filter !== "all" && featured.category === filter;
 

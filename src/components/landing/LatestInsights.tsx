@@ -3,10 +3,15 @@ import { ArrowRight, ArrowUpRight } from "lucide-react";
 import { SectionHeading } from "@/components/SectionHeading";
 import { Reveal } from "@/components/Reveal";
 import { ArticleCard } from "@/components/ArticleCard";
-import { articles } from "@/data/catalog";
+import { useAllContent } from "@/hooks/use-content";
+import { articles as legacyArticles } from "@/data/catalog";
 import { articlePath } from "@/data/navigation";
 
 export function LatestInsights() {
+  // Database-backed blog posts (published only), legacy fallback while
+  // the first Convex payload loads.
+  const content = useAllContent();
+  const articles = content?.blog ?? legacyArticles;
   const latest = articles.slice(0, 3);
   const feature = articles.find((a) => a.featured);
 

@@ -1,17 +1,33 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { mutation, query, MutationCtx } from "./_generated/server";
 import { getCurrentUser } from "./users";
-import { resources } from "../data/catalog";
 
 /**
- * Server-side price map, derived from the Edueyedia catalog. The client never
- * decides how much to pay — every order total and paid-purchase check is
- * computed here from the catalog, so a tampered price is always rejected.
- * Free resources map to 0.
+ * Server-side price authority, read from the resources table in Convex.
+ * The client never decides how much to pay — every order total and
+ * paid-purchase check is computed here from the database, so a tampered
+ * price is always rejected. Unknown slugs price at 0 (never charge for
+ * content that is not in the catalog).
  */
-const PRICE_MAP = new Map<string, number>(
-  resources.map((r) => [r.slug, r.kind === "free" ? 0 : r.price]),
-);
+async function catalogPrice(ctx: MutationCtx, resourceId: string): Promise<number> {
+  const row = await ctx.db
+    .query("resources")
+    .withIndex("slug", (q) => q.eq("slug", resourceId))
+    .first();
+  if (!row) return 0;
+  return row.isFree ? 0 : row.price;
+}
+
+async function computeTotal(
+  ctx: MutationCtx,
+  resourceIds: string[],
+): Promise<number> {
+  let total = 0;
+  for (const id of resourceIds) {
+    total += await catalogPrice(ctx, id);
+  }
+  return total;
+}
 
 /**
  * The signed-in user's library: every resource they own, newest first.
@@ -90,10 +106,7 @@ export const purchase = mutation({
         }
       }
       // Defensive: never trust client-side pricing.
-      const expected = resourceIds.reduce(
-        (sum, id) => sum + (PRICE_MAP.get(id) ?? 0),
-        0,
-      );
+      const expected = await computeTotal(ctx, resourceIds);
       if (pricePaid < expected) {
         throw new Error("Payment amount does not match the catalog price.");
       }
@@ -148,15 +161,12 @@ export const createOrder = mutation({
       throw new Error("Please provide your name and email.");
     }
 
-    const total = args.resourceIds.reduce(
-      (sum, id) => sum + (PRICE_MAP.get(id) ?? 0),
-      0,
-    );
+    const total = await computeTotal(ctx, args.resourceIds);
     if (total <= 0) {
       throw new Error("Your order must contain paid resources.");
     }
 
-    return await ctx.db.insert("orders", {
+    const orderId = await ctx.db.insert("orders", {
       userId: user._id,
       resourceIds: args.resourceIds,
       contactName: args.contactName.trim(),
@@ -167,6 +177,23 @@ export const createOrder = mutation({
       status: "pending",
       createdAt: Date.now(),
     });
+
+    // Record line items (snapshot) for the order.
+    for (const resourceId of args.resourceIds) {
+      const row = await ctx.db
+        .query("resources")
+        .withIndex("slug", (q) => q.eq("slug", resourceId))
+        .first();
+      if (!row) continue;
+      await ctx.db.insert("orderItems", {
+        orderId,
+        resourceId,
+        title: row.title,
+        price: row.isFree ? 0 : row.price,
+      });
+    }
+
+    return orderId;
   },
 });
 

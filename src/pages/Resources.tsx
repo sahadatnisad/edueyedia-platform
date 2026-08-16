@@ -6,28 +6,42 @@ import { Footer } from "@/components/Footer";
 import { Reveal } from "@/components/Reveal";
 import { ResourceCard } from "@/components/ResourceCard";
 import { ArticleCard } from "@/components/ArticleCard";
-import { articles, resources } from "@/data/catalog";
+import {
+  useAllContent,
+  useResourceCategories,
+} from "@/hooks/use-content";
+import {
+  articles as legacyArticles,
+  resources as legacyResources,
+} from "@/data/catalog";
 import { ArrowRight, FileText, Layers } from "lucide-react";
 
-const TABS = [
-  { id: "all", label: "All" },
-  { id: "research", label: "Research" },
-  { id: "scholarships", label: "Scholarships" },
-  { id: "academic-writing", label: "Academic Writing" },
-  { id: "study-abroad", label: "Study Abroad" },
-  { id: "career", label: "Career" },
-  { id: "bundles", label: "Bundles" },
-  { id: "free", label: "Free" },
-] as const;
-
-type TabId = (typeof TABS)[number]["id"];
+type TabId = string;
 
 export default function Resources() {
   const [searchParams, setSearchParams] = useSearchParams();
   const raw = searchParams.get("tab");
-  const tab: TabId = TABS.some((t) => t.id === raw)
-    ? (raw as TabId)
-    : "all";
+
+  // Database-backed content (published only). Falls back to the legacy
+  // catalog while the first Convex payload is loading so the page never
+  // flashes empty.
+  const content = useAllContent();
+  const resources = content?.resources ?? legacyResources;
+  const articles = content?.articles ?? legacyArticles;
+
+  // Filters are database-driven: category tabs come from the DB with live
+  // published counts.
+  const dbCategories = useResourceCategories();
+  const TABS = [
+    { id: "all", label: "All", count: undefined },
+    ...(dbCategories ?? []).map((c) => ({
+      id: c.slug,
+      label: c.name,
+      count: c.count,
+    })),
+    { id: "free", label: "Free", count: resources.filter((r) => r.kind === "free").length },
+  ];
+  const tab: TabId = TABS.some((t) => t.id === raw) ? (raw as TabId) : "all";
 
   const results = useMemo(() => {
     if (tab === "all") return resources;
@@ -94,12 +108,8 @@ export default function Resources() {
                   )}
                 >
                   {t.label}
-                  {t.id !== "all" && (
-                    <span className="ml-1.5 opacity-60">
-                      {t.id === "free"
-                        ? resources.filter((r) => r.kind === "free").length
-                        : resources.filter((r) => r.category === t.id).length}
-                    </span>
+                  {t.count !== undefined && (
+                    <span className="ml-1.5 opacity-60">{t.count}</span>
                   )}
                 </button>
               ))}

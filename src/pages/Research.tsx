@@ -9,13 +9,19 @@ import { SectionHeading } from "@/components/SectionHeading";
 import { ArticleCard } from "@/components/ArticleCard";
 import { ResourceCard } from "@/components/ResourceCard";
 import { Newsletter } from "@/components/landing/Newsletter";
-import { articles, resources, RESEARCH_TOPICS, type ResearchContentType } from "@/data/catalog";
-import { extraArticles } from "@/data/extraArticles";
+import { useAllContent } from "@/hooks/use-content";
+import {
+  articles as legacyArticles,
+  resources as legacyResources,
+  RESEARCH_TOPICS,
+  type ResearchContentType,
+} from "@/data/catalog";
+import { extraArticles as legacyExtraArticles } from "@/data/extraArticles";
 
-/** All research-centred articles across the catalog. */
-const researchArticles = [
-  ...articles.filter((a) => a.category === "research"),
-  ...extraArticles.filter((a) => a.category === "research"),
+/** All research-centred articles — legacy fallback while the DB loads. */
+const legacyResearchArticles = [
+  ...legacyArticles.filter((a) => a.category === "research"),
+  ...legacyExtraArticles.filter((a) => a.category === "research"),
 ];
 
 const TYPE_BY_SLUG: Record<string, ResearchContentType> = {
@@ -26,7 +32,10 @@ const TYPE_BY_SLUG: Record<string, ResearchContentType> = {
   "research-gap-explained": "research-discussion",
 };
 
-const typeOf = (slug: string): ResearchContentType | undefined =>
+const typeOf = (
+  researchArticles: { slug: string; contentType?: ResearchContentType }[],
+  slug: string,
+): ResearchContentType | undefined =>
   researchArticles.find((a) => a.slug === slug)?.contentType ?? TYPE_BY_SLUG[slug];
 
 const byNewest = (a: { date: string }, b: { date: string }) =>
@@ -66,29 +75,35 @@ const COMING_SOON = [
   },
 ];
 
-const researchResources = resources.filter((r) => r.category === "research");
-
 export default function Research() {
   const [topic, setTopic] = useState<ResearchContentType | "all">("all");
 
+  // Database-backed research articles + research resources (published only),
+  // with a legacy fallback while the first Convex payload loads.
+  const content = useAllContent();
+  const researchArticles = content?.research ?? legacyResearchArticles;
+  const researchResources =
+    content?.resources.filter((r) => r.category === "research") ??
+    legacyResources.filter((r) => r.category === "research");
+
   const featured = useMemo(
     () => [...researchArticles].sort(byNewest)[0],
-    [],
+    [researchArticles],
   );
   const side = useMemo(
     () =>
       [...researchArticles]
         .sort(byNewest)
-        .filter((a) => a.slug !== featured.slug)
+        .filter((a) => a.slug !== featured?.slug)
         .slice(0, 3),
-    [featured.slug],
+    [researchArticles, featured?.slug],
   );
 
   const visible = useMemo(() => {
     const list = [...researchArticles].sort(byNewest);
     if (topic === "all") return list;
-    return list.filter((a) => typeOf(a.slug) === topic);
-  }, [topic]);
+    return list.filter((a) => typeOf(researchArticles, a.slug) === topic);
+  }, [topic, researchArticles]);
 
   return (
     <div className="min-h-screen bg-ivory dark:bg-navy-deep">
@@ -263,7 +278,7 @@ export default function Research() {
                 All
               </button>
               {RESEARCH_TOPICS.map((t) => {
-                const count = researchArticles.filter((a) => typeOf(a.slug) === t.id).length;
+                const count = researchArticles.filter((a) => typeOf(researchArticles, a.slug) === t.id).length;
                 return (
                   <button
                     key={t.id}

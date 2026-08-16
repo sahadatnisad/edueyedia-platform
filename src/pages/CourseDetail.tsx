@@ -16,11 +16,17 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Reveal } from "@/components/Reveal";
 import { CourseCover } from "@/components/CourseCover";
-import { courses, getCourse } from "@/data/courses";
+import { useAllContent, useCourse } from "@/hooks/use-content";
+import { courses as legacyCourses, getCourse } from "@/data/courses";
 
 export default function CourseDetail() {
   const { slug } = useParams<{ slug: string }>();
-  const course = slug ? getCourse(slug) : undefined;
+  // DB-backed course (published/coming-soon). Legacy fallback while loading.
+  const dbCourse = useCourse(slug);
+  const course =
+    dbCourse ?? (dbCourse === undefined ? (slug ? getCourse(slug) : undefined) : undefined);
+  const content = useAllContent();
+  const allCourses = content?.courses ?? legacyCourses;
 
   if (!course) {
     return (
@@ -40,7 +46,7 @@ export default function CourseDetail() {
     );
   }
 
-  const related = courses.filter((c) => c.slug !== course.slug).slice(0, 3);
+  const related = allCourses.filter((c) => c.slug !== course.slug).slice(0, 3);
   const comingSoon = course.status === "coming-soon";
 
   return (

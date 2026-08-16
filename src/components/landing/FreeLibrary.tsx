@@ -5,21 +5,32 @@ import { cn } from "@/lib/utils";
 import { SectionHeading } from "@/components/SectionHeading";
 import { Reveal } from "@/components/Reveal";
 import { BookCover } from "@/components/BookCover";
-import {
-  freeLibraryFilterFor,
-  freeResources,
-  libraryFilters,
-} from "@/data/catalog";
+import { useAllContent } from "@/hooks/use-content";
+import { libraryFilters, freeResources as legacyFreeResources } from "@/data/catalog";
+import type { Resource } from "@/data/catalog";
+
+/** Free-library filter label derived from the (DB-backed) resource itself. */
+function freeLibraryFilterFor(r: Resource): (typeof libraryFilters)[number] {
+  if (r.slug.includes("checklist")) return "Checklists";
+  if (r.category === "research") return "Research";
+  if (r.category === "scholarships") return "Scholarships";
+  return "Academic Writing";
+}
 
 export function FreeLibrary() {
   const [filter, setFilter] = useState<(typeof libraryFilters)[number] | "All">("All");
+
+  // Database-backed free resources (published only), legacy fallback while
+  // the first Convex payload loads.
+  const content = useAllContent();
+  const freeResources = content?.resources.filter((r) => r.kind === "free") ?? legacyFreeResources;
 
   const results = useMemo(
     () =>
       filter === "All"
         ? freeResources
-        : freeResources.filter((r) => freeLibraryFilterFor(r.slug) === filter),
-    [filter],
+        : freeResources.filter((r) => freeLibraryFilterFor(r) === filter),
+    [filter, freeResources],
   );
 
   return (
@@ -75,7 +86,7 @@ export function FreeLibrary() {
                 <div className="flex min-w-0 flex-1 flex-col py-1">
                   <div className="flex items-center gap-2">
                     <span className="rounded-full bg-gold/15 px-2.5 py-0.5 text-[10px] font-bold tracking-[0.14em] text-[#8a681f] uppercase dark:text-gold">
-                      {freeLibraryFilterFor(r.slug)}
+                      {freeLibraryFilterFor(r)}
                     </span>
                     <span className="text-[10px] font-medium text-ink-soft dark:text-slate-400">
                       {r.format.split(" ")[0]}

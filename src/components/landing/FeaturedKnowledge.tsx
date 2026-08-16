@@ -4,18 +4,44 @@ import { SectionHeading } from "@/components/SectionHeading";
 import { Reveal } from "@/components/Reveal";
 import { ArticleArt } from "@/components/ArticleArt";
 import { BookCover } from "@/components/BookCover";
-import { articles, getResource } from "@/data/catalog";
+import { useFeaturedHome } from "@/hooks/use-content";
+import { articles as legacyArticles, getResource } from "@/data/catalog";
+import type { Resource } from "@/data/catalog";
 import { articlePath } from "@/data/navigation";
 
+const keep = <T,>(v: T | undefined): v is T => v !== undefined;
+
 export function FeaturedKnowledge() {
-  const feature = articles.find((a) => a.featured) ?? articles[0];
-  const mediumA = getResource("research-proposal-master-guide")!;
-  const mediumB = getResource("scholarship-application-essentials")!;
-  const smalls = [
-    getResource("research-topic-brainstormer")!,
-    getResource("scholarship-deadline-tracker")!,
-    getResource("academic-writing-phrases-bangla")!,
-  ];
+  // DB-driven featured selections (featured flag), with a legacy fallback
+  // while the first Convex payload loads.
+  const home = useFeaturedHome();
+  const featuredResources = home?.resources ?? [];
+  const fallbackFeature =
+    legacyArticles.find((a) => a.featured) ?? legacyArticles[0];
+  const feature =
+    (home ? [...home.blog, ...home.research][0] : undefined) ?? fallbackFeature;
+
+  const fallbackMediums: Resource[] = [
+    getResource("research-proposal-master-guide"),
+    getResource("scholarship-application-essentials"),
+  ].filter(keep);
+  const mediumList: Resource[] = home
+    ? (() => {
+        const paid = featuredResources.filter((r) => r.kind === "paid");
+        return paid.length >= 2
+          ? paid.slice(0, 2)
+          : featuredResources.slice(0, 2);
+      })()
+    : fallbackMediums;
+
+  const fallbackSmalls: Resource[] = [
+    getResource("research-topic-brainstormer"),
+    getResource("scholarship-deadline-tracker"),
+    getResource("academic-writing-phrases-bangla"),
+  ].filter(keep);
+  const smallList: Resource[] = home
+    ? featuredResources.filter((r) => r.kind === "free").slice(0, 3)
+    : fallbackSmalls;
 
   return (
     <section className="relative overflow-hidden bg-ivory py-20 sm:py-28 dark:bg-navy-deep">
@@ -83,7 +109,7 @@ export function FeaturedKnowledge() {
           </Reveal>
 
           {/* Two medium resource cards */}
-          {[mediumA, mediumB].map((r, i) => (
+          {mediumList.map((r, i) => (
             <Reveal key={r.slug} delay={0.08 * (i + 1)} className="lg:col-span-5">
               <Link
                 to={`/resources/${r.slug}`}
@@ -117,7 +143,7 @@ export function FeaturedKnowledge() {
           ))}
 
           {/* Three small cards */}
-          {smalls.map((r, i) => (
+          {smallList.map((r, i) => (
             <Reveal key={r.slug} delay={0.1 * (i + 1)} className="lg:col-span-4">
               <Link
                 to={`/resources/${r.slug}`}

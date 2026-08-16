@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import { useSite } from "@/components/site/SiteContext";
 import { useAuth } from "@/hooks/use-auth";
+import { useResource, useResourcesBySlugs } from "@/hooks/use-content";
 import { CATEGORY_LABELS, getResource } from "@/data/catalog";
 import {
   ArrowLeft,
@@ -49,7 +50,12 @@ type SectionId = (typeof SECTIONS)[number]["id"];
 
 export default function ResourceDetail() {
   const { slug } = useParams<{ slug: string }>();
-  const resource = slug ? getResource(slug) : undefined;
+  // DB-backed resource (published only). Falls back to the legacy catalog
+  // while the first Convex payload loads; once loaded, the DB is authoritative.
+  const dbResource = useResource(slug);
+  const resource =
+    dbResource ?? (dbResource === undefined ? (slug ? getResource(slug) : undefined) : undefined);
+  const relatedQuery = useResourcesBySlugs(resource?.related);
   const [section, setSection] = useState<SectionId>("overview");
   const [previewOpen, setPreviewOpen] = useState(false);
   const [claiming, setClaiming] = useState(false);
@@ -120,7 +126,9 @@ export default function ResourceDetail() {
     }
   };
 
-  const related = resource.related.map(getResource).filter(Boolean).slice(0, 3);
+  const related =
+    relatedQuery ??
+    (resource ? resource.related.map(getResource).filter(Boolean).slice(0, 3) : []);
 
   return (
     <div className="min-h-screen bg-ivory dark:bg-navy-deep">

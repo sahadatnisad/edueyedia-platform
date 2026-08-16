@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useSite } from "@/components/site/SiteContext";
 import { useAuth } from "@/hooks/use-auth";
+import { useResourcesBySlugs } from "@/hooks/use-content";
 import { getResource } from "@/data/catalog";
 import {
   ArrowLeft,
@@ -55,12 +56,19 @@ export default function Checkout() {
   const [completed, setCompleted] = useState<CompletedOrder | null>(null);
   const returnVerified = useRef(false);
 
+  // Resolve cart items against published DB resources (legacy fallback).
+  const dbResources = useResourcesBySlugs(cart.map((i) => i.slug));
   const items = useMemo(
     () =>
       cart
-        .map((item) => ({ item, resource: getResource(item.slug) }))
+        .map((item) => ({
+          item,
+          resource:
+            dbResources?.find((r) => r.slug === item.slug) ??
+            getResource(item.slug),
+        }))
         .filter((x) => x.resource),
-    [cart],
+    [cart, dbResources],
   );
 
   const compareAtTotal = useMemo(

@@ -9,6 +9,7 @@ import { Reveal } from "@/components/Reveal";
 import { BookCover } from "@/components/BookCover";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
+import { useResourcesBySlugs } from "@/hooks/use-content";
 import { getResource } from "@/data/catalog";
 import {
   ArrowRight,
@@ -30,12 +31,26 @@ export default function Dashboard() {
   const removeFromLibrary = useMutation(api.library.removeFromLibrary);
   const navigate = useNavigate();
 
+  // Resolve library/order items against published DB resources (legacy fallback).
+  const ownedSlugs = (library ?? []).map((row) => row.resourceId);
+  const orderSlugs = useMemo(
+    () => [...new Set((orders ?? []).flatMap((o) => o.resourceIds))],
+    [orders],
+  );
+  const ownedDb = useResourcesBySlugs(ownedSlugs);
+  const orderDb = useResourcesBySlugs(orderSlugs);
+
   const owned = useMemo(
     () =>
       (library ?? [])
-        .map((row) => ({ row, resource: getResource(row.resourceId) }))
+        .map((row) => ({
+          row,
+          resource:
+            ownedDb?.find((r) => r.slug === row.resourceId) ??
+            getResource(row.resourceId),
+        }))
         .filter((x) => x.resource),
-    [library],
+    [library, ownedDb],
   );
 
   const orderRows = useMemo(
@@ -43,11 +58,11 @@ export default function Dashboard() {
       (orders ?? []).map((order) => ({
         order,
         titles: order.resourceIds
-          .map((id) => getResource(id))
+          .map((id) => orderDb?.find((r) => r.slug === id) ?? getResource(id))
           .filter(Boolean)
           .map((r) => r!.titleBn ?? r!.title),
       })),
-    [orders],
+    [orders, orderDb],
   );
 
   const paidCount = owned.filter((x) => x.row.kind === "paid").length;

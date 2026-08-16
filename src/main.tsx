@@ -1,6 +1,7 @@
 import "@vly-ai/integrations";
 import { Toaster } from "@/components/ui/sonner";
 import { RequireAuth } from "@/components/RequireAuth";
+import { RequireAdmin } from "@/components/RequireAdmin";
 import { VlyToolbar } from "../vly-toolbar-readonly.tsx";
 import { ConvexAuthProvider } from "@convex-dev/auth/react";
 import { ConvexReactClient } from "convex/react";
@@ -35,6 +36,30 @@ const FAQ = lazy(() => import("./pages/FAQ.tsx"));
 const LegalPage = lazy(() => import("./pages/LegalPage.tsx"));
 const Checkout = lazy(() => import("./pages/Checkout.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
+// Admin
+const AdminShell = lazy(() => import("./components/admin/AdminShell.tsx"));
+const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard.tsx"));
+const AdminResources = lazy(() => import("./pages/admin/AdminResources.tsx"));
+const AdminResourceEditor = lazy(() =>
+  import("./pages/admin/AdminResources.tsx").then((m) => ({ default: m.AdminResourceEditor })),
+);
+const AdminResearch = lazy(() => import("./pages/admin/AdminResearch.tsx"));
+const AdminResearchEditor = lazy(() =>
+  import("./pages/admin/AdminResearch.tsx").then((m) => ({ default: m.AdminResearchEditor })),
+);
+const AdminBlog = lazy(() => import("./pages/admin/AdminBlog.tsx"));
+const AdminBlogEditor = lazy(() =>
+  import("./pages/admin/AdminBlog.tsx").then((m) => ({ default: m.AdminBlogEditor })),
+);
+const AdminCourses = lazy(() => import("./pages/admin/AdminCourses.tsx"));
+const AdminCourseEditor = lazy(() =>
+  import("./pages/admin/AdminCourses.tsx").then((m) => ({ default: m.AdminCourseEditor })),
+);
+const AdminAuthors = lazy(() => import("./pages/admin/AdminAuthors.tsx"));
+const AdminAuthorEditor = lazy(() =>
+  import("./pages/admin/AdminAuthors.tsx").then((m) => ({ default: m.AdminAuthorEditor })),
+);
+const AdminOrders = lazy(() => import("./pages/admin/AdminOrders.tsx"));
 
 // Simple loading fallback for route transitions
 function RouteLoading() {
@@ -199,6 +224,33 @@ createRoot(document.getElementById("root")!).render(
                     path="/learn/:slug"
                     element={<LegacyArticleRedirect toBase="/blog" />}
                   />
+                  {/* Admin CMS — guarded by RequireAdmin (server re-verifies) */}
+                  <Route
+                    path="/admin"
+                    element={
+                      <RequireAdmin>
+                        <AdminShell />
+                      </RequireAdmin>
+                    }
+                  >
+                    <Route index element={<AdminDashboard />} />
+                    <Route path="resources" element={<AdminResources />} />
+                    <Route path="resources/new" element={<AdminResourceEditor />} />
+                    <Route path="resources/:id" element={<AdminResourceEditor />} />
+                    <Route path="research" element={<AdminResearch />} />
+                    <Route path="research/new" element={<AdminResearchEditor />} />
+                    <Route path="research/:id" element={<AdminResearchEditor />} />
+                    <Route path="blog" element={<AdminBlog />} />
+                    <Route path="blog/new" element={<AdminBlogEditor />} />
+                    <Route path="blog/:id" element={<AdminBlogEditor />} />
+                    <Route path="courses" element={<AdminCourses />} />
+                    <Route path="courses/new" element={<AdminCourseEditor />} />
+                    <Route path="courses/:id" element={<AdminCourseEditor />} />
+                    <Route path="authors" element={<AdminAuthors />} />
+                    <Route path="authors/new" element={<AdminAuthorEditor />} />
+                    <Route path="authors/:id" element={<AdminAuthorEditor />} />
+                    <Route path="orders" element={<AdminOrders />} />
+                  </Route>
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </Suspense>

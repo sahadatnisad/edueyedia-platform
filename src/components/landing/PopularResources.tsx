@@ -3,6 +3,7 @@ import { ArrowRight, ArrowUpRight } from "lucide-react";
 import { SectionHeading } from "@/components/SectionHeading";
 import { Reveal } from "@/components/Reveal";
 import { ResourceCard } from "@/components/ResourceCard";
+import { useResourcesBySlugs } from "@/hooks/use-content";
 import { getResource } from "@/data/catalog";
 
 const POPULAR_SLUGS = [
@@ -13,7 +14,9 @@ const POPULAR_SLUGS = [
 ];
 
 export function PopularResources() {
-  const popular = POPULAR_SLUGS.map(getResource).filter(Boolean);
+  // DB lookups by slug, legacy fallback while the first payload loads.
+  const dbPopular = useResourcesBySlugs(POPULAR_SLUGS);
+  const popular = dbPopular ?? POPULAR_SLUGS.map(getResource).filter(Boolean);
 
   return (
     <section className="bg-ivory py-20 sm:py-28 dark:bg-navy-deep">

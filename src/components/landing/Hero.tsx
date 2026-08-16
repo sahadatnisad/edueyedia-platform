@@ -2,6 +2,8 @@ import { Link } from "react-router";
 import { motion } from "framer-motion";
 import { ArrowRight, BadgeCheck, BookOpen, FileText } from "lucide-react";
 import { Reveal } from "@/components/Reveal";
+import { useAllContent } from "@/hooks/use-content";
+import { resources as legacyResources } from "@/data/catalog";
 
 const TRUST = [
   "বাংলায় তৈরি",
@@ -12,6 +14,10 @@ const TRUST = [
 ];
 
 export function Hero() {
+  // Live published-resource count for the hero seal (falls back to the
+  // legacy catalog while the first Convex payload loads).
+  const content = useAllContent();
+  const resourceCount = content?.resources.length ?? legacyResources.length;
 
   return (
     <section className="relative overflow-hidden bg-ivory pb-16 pt-36 sm:pb-20 sm:pt-40 dark:bg-navy-deep">
@@ -186,7 +192,7 @@ export function Hero() {
             >
               <div className="animate-float rounded-2xl bg-teal p-4 text-white shadow-[0_24px_48px_-20px_rgba(15,118,110,0.5)] [animation-delay:1.2s] sm:p-5">
                 <p className="text-[9px] font-bold tracking-[0.18em] text-teal-100 uppercase">
-                  Research output
+                  Published guides
                 </p>
                 <div className="mt-3 flex h-16 items-end gap-1.5">
                   {[40, 62, 48, 78, 58, 92].map((h, i) => (
@@ -197,7 +203,7 @@ export function Hero() {
                     />
                   ))}
                 </div>
-                <p className="mt-2 text-[10px] text-teal-50/90">+63% vs 2024</p>
+                <p className="mt-2 text-[10px] text-teal-50/90">{resourceCount} live</p>
               </div>
             </motion.div>
 
@@ -228,7 +234,7 @@ export function Hero() {
             >
               <div className="flex size-16 animate-float items-center justify-center rounded-full bg-gold text-center shadow-[0_16px_32px_-12px_rgba(214,168,75,0.6)] [animation-delay:0.6s] sm:size-20">
                 <div>
-                  <p className="text-[15px] leading-none font-black text-navy sm:text-lg">22+</p>
+                  <p className="text-[15px] leading-none font-black text-navy sm:text-lg">{resourceCount}</p>
                   <p className="mt-0.5 text-[7px] font-bold tracking-[0.14em] text-navy/70 uppercase">
                     Resources
                   </p>

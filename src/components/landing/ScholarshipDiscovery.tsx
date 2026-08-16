@@ -4,7 +4,9 @@ import { ArrowRight, CalendarDays, Globe2, Landmark, Wallet } from "lucide-react
 import { cn } from "@/lib/utils";
 import { SectionHeading } from "@/components/SectionHeading";
 import { Reveal } from "@/components/Reveal";
-import { scholarships } from "@/data/catalog";
+import { useSiteSetting } from "@/hooks/use-content";
+import { scholarships as legacyScholarships } from "@/data/catalog";
+import type { Scholarship } from "@/data/catalog";
 
 const FILTERS = [
   "Masters",
@@ -18,7 +20,13 @@ const FILTERS = [
 
 type Filter = (typeof FILTERS)[number];
 
-function matches(s: (typeof scholarships)[number], filter: Filter) {
+/** Legacy fallback while the DB setting loads — fabricated deadlines stripped. */
+const fallbackScholarships: Scholarship[] = legacyScholarships.map((s) => ({
+  ...s,
+  deadline: "",
+}));
+
+function matches(s: Scholarship, filter: Filter) {
   switch (filter) {
     case "Masters":
       return s.degree === "Masters" || s.degree === "Both";
@@ -34,10 +42,15 @@ function matches(s: (typeof scholarships)[number], filter: Filter) {
 export function ScholarshipDiscovery() {
   const [active, setActive] = useState<Filter[]>([]);
 
+  // Scholarship list is a DB site setting (deadlines are intentionally
+  // empty — users are told to verify on the official site).
+  const setting = useSiteSetting("scholarships");
+  const scholarships = (setting ?? fallbackScholarships) as Scholarship[];
+
   const results = useMemo(() => {
     if (active.length === 0) return scholarships;
     return scholarships.filter((s) => active.every((f) => matches(s, f)));
-  }, [active]);
+  }, [active, scholarships]);
 
   const toggle = (f: Filter) =>
     setActive((prev) =>
@@ -58,7 +71,7 @@ export function ScholarshipDiscovery() {
             eyebrow="Scholarship Discovery"
             title="Find Your Next Opportunity"
             titleBn="আপনার পরবর্তী সুযোগ খুঁজে নিন"
-            description="Fully funded programs open to Bangladeshi students — filtered by degree and region, mapped with real deadlines."
+            description="Fully funded programs open to Bangladeshi students — filtered by degree and region, with deadlines verified on each official site."
           />
         </div>
 
@@ -127,7 +140,7 @@ export function ScholarshipDiscovery() {
                   </span>
                   <span className="inline-flex items-center gap-1.5">
                     <CalendarDays className="size-3.5 text-sky-600 dark:text-sky-300" />
-                    {s.deadline}
+                    {s.deadline || "Verify on official site"}
                   </span>
                 </div>
 

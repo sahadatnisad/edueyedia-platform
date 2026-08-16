@@ -15,12 +15,23 @@ import {
   Clock,
   Hash,
 } from "lucide-react";
-import { getArticle, getResource, articles } from "@/data/catalog";
+import {
+  useAllContent,
+  useArticle,
+  useResourcesBySlugs,
+} from "@/hooks/use-content";
+import { getArticle, getResource, articles as legacyArticles } from "@/data/catalog";
 import { articlePath } from "@/data/navigation";
 
 export default function ArticlePage() {
   const { slug } = useParams<{ slug: string }>();
-  const article = slug ? getArticle(slug) : undefined;
+  // DB-backed article (research or blog, published only). Legacy fallback
+  // while the first Convex payload loads; once loaded, the DB is authoritative.
+  const dbArticle = useArticle(slug);
+  const article =
+    dbArticle ?? (dbArticle === undefined ? (slug ? getArticle(slug) : undefined) : undefined);
+  const content = useAllContent();
+  const relatedQuery = useResourcesBySlugs(article?.relatedResources);
   const [activeId, setActiveId] = useState<string>("");
 
   const headings = article?.blocks.filter(
@@ -75,10 +86,12 @@ export default function ArticlePage() {
   const indexLabel = isResearch ? "Research" : "Blog";
   const indexHref = isResearch ? "/research" : "/blog";
 
-  const relatedResources = article.relatedResources
-    .map(getResource)
-    .filter(Boolean)
-    .slice(0, 3);
+  const relatedResources =
+    relatedQuery ??
+    (article
+      ? article.relatedResources.map(getResource).filter(Boolean).slice(0, 3)
+      : []);
+  const articles = content?.articles ?? legacyArticles;
   const moreArticles = articles
     .filter((a) => a.slug !== article.slug)
     .slice(0, 2);
@@ -214,6 +227,16 @@ export default function ArticlePage() {
                       >
                         {block.text}
                       </h2>
+                    );
+                  case "h3":
+                    return (
+                      <h3
+                        key={i}
+                        id={block.id}
+                        className="font-serif mt-10 mb-3 scroll-mt-28 text-xl leading-snug text-navy sm:text-2xl dark:text-slate-100"
+                      >
+                        {block.text}
+                      </h3>
                     );
                   case "quote":
                     return (

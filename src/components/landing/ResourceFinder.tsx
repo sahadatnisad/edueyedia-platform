@@ -5,12 +5,24 @@ import { cn } from "@/lib/utils";
 import { SectionHeading } from "@/components/SectionHeading";
 import { Reveal } from "@/components/Reveal";
 import { BookCover } from "@/components/BookCover";
-import { finderOptions, getArticle, getResource } from "@/data/catalog";
+import { useAllContent } from "@/hooks/use-content";
+import {
+  finderOptions,
+  articles as legacyArticles,
+  resources as legacyResources,
+} from "@/data/catalog";
 import { articlePath } from "@/data/navigation";
 
 export function ResourceFinder() {
   const [selected, setSelected] = useState(finderOptions[0].id);
   const option = finderOptions.find((o) => o.id === selected) ?? finderOptions[0];
+
+  // Resolve finder picks against published DB content (legacy fallback).
+  const content = useAllContent();
+  const resources = content?.resources ?? legacyResources;
+  const articles = content?.articles ?? legacyArticles;
+  const findResource = (slug: string) => resources.find((r) => r.slug === slug);
+  const findArticle = (slug: string) => articles.find((a) => a.slug === slug);
 
   return (
     <section className="relative overflow-hidden bg-cool py-20 sm:py-28 dark:bg-navy-surface/40">
@@ -74,7 +86,7 @@ export function ResourceFinder() {
 
               <div className="flex flex-col gap-3">
                 {option.resourceSlugs.map((slug) => {
-                  const r = getResource(slug);
+                  const r = findResource(slug);
                   if (!r) return null;
                   return (
                     <Link
@@ -110,7 +122,7 @@ export function ResourceFinder() {
                   </p>
                   <div className="mt-3 flex flex-col gap-2.5">
                     {option.articleSlugs.map((slug) => {
-                      const a = getArticle(slug);
+                      const a = findArticle(slug);
                       if (!a) return null;
                       return (
                         <Link
