@@ -14,6 +14,7 @@ import {
   resources,
   scholarships,
 } from "@/data/catalog";
+import { articlePath } from "@/data/navigation";
 import {
   BookOpen,
   FileText,
@@ -25,7 +26,7 @@ interface SearchEntry {
   id: string;
   title: string;
   subtitle: string;
-  group: "Insights" | "Resources" | "Scholarships" | "Topics";
+  group: "Blog" | "Resources" | "Scholarships" | "Topics";
   to: string;
   value: string;
 }
@@ -62,10 +63,10 @@ const TOPICS: { title: string; subtitle: string; to: string; value: string }[] =
     value: "free resources library templates checklists ফ্রি",
   },
   {
-    title: "Insights",
+    title: "Blog",
     subtitle: "গবেষণা, শিক্ষা ও সুযোগ নিয়ে নির্বাচিত লেখা — articles & guides",
-    to: "/insights",
-    value: "insights articles guides blog গবেষণা শিক্ষা জ্ঞান গাইড বিশ্লেষণ",
+    to: "/blog",
+    value: "blog insights articles guides গবেষণা শিক্ষা জ্ঞান গাইড বিশ্লেষণ",
   },
 ];
 
@@ -105,8 +106,8 @@ export function SearchCommand() {
       id: `a-${a.slug}`,
       title: a.title,
       subtitle: `${a.titleBn ?? ""} • ${a.categoryLabel} • ${a.readingTime}`,
-      group: "Insights",
-      to: `/insights/${a.slug}`,
+      group: "Blog",
+      to: articlePath(a),
       value: `${a.title} ${a.titleBn ?? ""} ${a.categoryLabel} ${a.excerpt} ${a.keywords.join(" ")}`,
     }));
 
@@ -131,7 +132,7 @@ export function SearchCommand() {
     return [...articleEntries, ...resourceEntries, ...scholarshipEntries, ...topicEntries];
   }, []);
 
-  const groups: SearchEntry["group"][] = ["Insights", "Resources", "Scholarships", "Topics"];
+  const groups: SearchEntry["group"][] = ["Blog", "Resources", "Scholarships", "Topics"];
 
   return (
     <CommandDialog
@@ -162,7 +163,7 @@ export function SearchCommand() {
                   }}
                   className="flex items-start gap-3 py-3"
                 >
-                  {item.group === "Insights" && (
+                  {item.group === "Blog" && (
                     <BookOpen className="mt-0.5 size-4 shrink-0 text-teal" />
                   )}
                   {item.group === "Resources" && (

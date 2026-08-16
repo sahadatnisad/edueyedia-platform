@@ -288,8 +288,8 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
               Browse resources
             </Link>
             <span className="h-0.5 w-0.5 rounded-full bg-current opacity-40" />
-            <Link to="/insights" className="link-underline font-medium text-navy dark:text-slate-200">
-              Read insights
+            <Link to="/blog" className="link-underline font-medium text-navy dark:text-slate-200">
+              Read the Blog
             </Link>
           </div>
 

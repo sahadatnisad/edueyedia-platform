@@ -6,6 +6,7 @@ import { SectionHeading } from "@/components/SectionHeading";
 import { Reveal } from "@/components/Reveal";
 import { BookCover } from "@/components/BookCover";
 import { finderOptions, getArticle, getResource } from "@/data/catalog";
+import { articlePath } from "@/data/navigation";
 
 export function ResourceFinder() {
   const [selected, setSelected] = useState(finderOptions[0].id);
@@ -114,7 +115,7 @@ export function ResourceFinder() {
                       return (
                         <Link
                           key={slug}
-                          to={`/insights/${slug}`}
+                          to={articlePath(a)}
                           className="group flex items-baseline justify-between gap-4 text-sm"
                         >
                           <span className="font-medium text-navy transition-colors group-hover:text-teal dark:text-slate-200 dark:group-hover:text-teal-bright">

@@ -70,11 +70,11 @@ const PUBLISH = [
   },
   {
     icon: BookOpen,
-    title: "The Insights Journal",
-    bn: "ইনসাইটস জার্নাল",
+    title: "The Edueyedia Blog",
+    bn: "এডুইডিয়া ব্লগ",
     copy: "Long-form guides and analysis on research methods, academic writing and scholarship strategy — in Bangla and English.",
-    to: "/insights",
-    cta: "Read insights",
+    to: "/blog",
+    cta: "Read the blog",
   },
 ];
 
@@ -223,11 +223,11 @@ export default function About() {
                     <ArrowRight className="size-4 transition-transform duration-300 group-hover:translate-x-1" />
                   </Link>
                   <Link
-                    to="/insights"
+                    to="/blog"
                     className="inline-flex h-12 items-center gap-2 rounded-full border border-hairline bg-white px-7 text-sm font-semibold text-navy transition-all hover:-translate-y-0.5 hover:border-slate-300 dark:border-white/15 dark:bg-white/5 dark:text-slate-100 dark:hover:border-teal/40"
                   >
                     <BookOpen className="size-4 text-teal" />
-                    Read Insights
+                    Read the Blog
                   </Link>
                 </div>
               </Reveal>

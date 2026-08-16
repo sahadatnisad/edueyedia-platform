@@ -16,6 +16,7 @@ import {
   Hash,
 } from "lucide-react";
 import { getArticle, getResource, articles } from "@/data/catalog";
+import { articlePath } from "@/data/navigation";
 
 export default function ArticlePage() {
   const { slug } = useParams<{ slug: string }>();
@@ -59,16 +60,20 @@ export default function ArticlePage() {
             Article not found
           </p>
           <Link
-            to="/insights"
+            to="/blog"
             className="link-underline text-sm font-semibold text-teal dark:text-teal-bright"
           >
-            Back to Insights
+            Back to the Blog
           </Link>
         </main>
         <Footer />
       </div>
     );
   }
+
+  const isResearch = article.category === "research";
+  const indexLabel = isResearch ? "Research" : "Blog";
+  const indexHref = isResearch ? "/research" : "/blog";
 
   const relatedResources = article.relatedResources
     .map(getResource)
@@ -94,10 +99,10 @@ export default function ArticlePage() {
           <header className="mx-auto max-w-3xl">
             <Reveal>
               <Link
-                to="/insights"
+                to={indexHref}
                 className="inline-flex items-center gap-1.5 text-xs font-semibold text-ink-soft transition-colors hover:text-navy dark:text-slate-400 dark:hover:text-white"
               >
-                <ArrowLeft className="size-3.5" /> Insights
+                <ArrowLeft className="size-3.5" /> {indexLabel}
               </Link>
             </Reveal>
             <Reveal delay={0.08}>
@@ -340,7 +345,7 @@ export default function ArticlePage() {
                 {moreArticles.map((a) => (
                   <Link
                     key={a.slug}
-                    to={`/insights/${a.slug}`}
+                    to={articlePath(a)}
                     className="group flex items-start gap-4 rounded-3xl border border-hairline bg-white p-5 transition-all duration-300 hover:-translate-y-1 hover:border-slate-300 hover:shadow-lg dark:border-white/10 dark:bg-navy-surface dark:hover:border-teal/40"
                   >
                     <div className="w-20 shrink-0 overflow-hidden rounded-xl">

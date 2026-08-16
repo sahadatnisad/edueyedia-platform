@@ -16,7 +16,7 @@ const COLUMNS: { title: string; links: { label: string; to: string }[] }[] = [
     links: [
       { label: "Resource Library", to: "/resources" },
       { label: "Free Library", to: "/resources?tab=free" },
-      { label: "Insights", to: "/insights" },
+      { label: "Blog", to: "/blog" },
       { label: "Collections", to: "/resources" },
     ],
   },
@@ -24,17 +24,17 @@ const COLUMNS: { title: string; links: { label: string; to: string }[] }[] = [
     title: "Edueyedia",
     links: [
       { label: "About", to: "/about" },
-      { label: "Contact", to: "mailto:hello@edueyedia.com" },
-      { label: "FAQ", to: "/resources" },
+      { label: "Contact", to: "/contact" },
+      { label: "FAQ", to: "/faq" },
     ],
   },
   {
     title: "Legal",
     links: [
-      { label: "Privacy", to: "#" },
-      { label: "Terms", to: "#" },
-      { label: "Refund Policy", to: "#" },
-      { label: "Digital Product Policy", to: "#" },
+      { label: "Privacy", to: "/privacy" },
+      { label: "Terms", to: "/terms" },
+      { label: "Refund Policy", to: "/refund-policy" },
+      { label: "Digital Product Policy", to: "/digital-product-policy" },
     ],
   },
 ];

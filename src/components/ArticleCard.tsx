@@ -3,6 +3,7 @@ import { ArrowUpRight, BookOpen, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Article } from "@/data/catalog";
 import { ArticleArt } from "@/components/ArticleArt";
+import { articlePath } from "@/data/navigation";
 
 export function ArticleCard({
   article,
@@ -15,7 +16,7 @@ export function ArticleCard({
 }) {
   return (
     <Link
-      to={`/insights/${article.slug}`}
+      to={articlePath(article)}
       className={cn(
         "group flex flex-col overflow-hidden rounded-3xl border border-hairline bg-white transition-all duration-300",
         "hover:-translate-y-1 hover:border-slate-300 hover:shadow-[0_24px_48px_-24px_rgba(15,34,56,0.25)]",

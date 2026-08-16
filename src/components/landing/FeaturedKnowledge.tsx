@@ -5,6 +5,7 @@ import { Reveal } from "@/components/Reveal";
 import { ArticleArt } from "@/components/ArticleArt";
 import { BookCover } from "@/components/BookCover";
 import { articles, getResource } from "@/data/catalog";
+import { articlePath } from "@/data/navigation";
 
 export function FeaturedKnowledge() {
   const feature = articles.find((a) => a.featured) ?? articles[0];
@@ -34,10 +35,10 @@ export function FeaturedKnowledge() {
           />
           <Reveal delay={0.15}>
             <Link
-              to="/insights"
+              to="/blog"
               className="link-underline group inline-flex w-fit items-center gap-1.5 text-sm font-semibold text-navy dark:text-slate-100"
             >
-              All insights
+              All articles
               <ArrowUpRight className="size-4 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
             </Link>
           </Reveal>
@@ -45,9 +46,8 @@ export function FeaturedKnowledge() {
 
         <div className="mt-12 grid gap-5 lg:grid-cols-12">
           {/* Featured story */}
-          <Reveal className="lg:col-span-7 lg:row-span-2">
-            <Link
-              to={`/insights/${feature.slug}`}
+          <Reveal className="lg:col-span-7 lg:row-span-2">              <Link
+                to={articlePath(feature)}
               className="group relative flex h-full min-h-[420px] flex-col justify-end overflow-hidden rounded-3xl border border-hairline bg-white dark:border-white/10 dark:bg-navy-surface"
             >
               <div className="absolute inset-0">

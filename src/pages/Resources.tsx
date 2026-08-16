@@ -144,10 +144,10 @@ export default function Resources() {
                         Browse the Free Library
                       </Link>
                       <Link
-                        to="/insights"
+                        to="/blog"
                         className="inline-flex h-10 items-center gap-1.5 rounded-full bg-navy px-5 text-[13px] font-semibold text-white transition-all hover:bg-navy/90 dark:bg-teal dark:text-navy-deep"
                       >
-                        Read related insights
+                        Read the Blog
                         <ArrowRight className="size-3.5" />
                       </Link>
                     </div>
@@ -155,13 +155,13 @@ export default function Resources() {
                 </Reveal>
               </div>
 
-              {/* Related insights sidebar */}
+              {/* Related articles sidebar */}
               <div className="lg:col-span-5">
                 <Reveal delay={0.1}>
                   <div className="flex items-center gap-3">
                     <span className="h-px w-8 bg-gold" />
                     <p className="text-xs font-bold tracking-[0.2em] text-teal uppercase dark:text-teal-bright">
-                      Related Insights
+                      Related Articles
                     </p>
                   </div>
                   <div className="mt-5 flex flex-col gap-5">
