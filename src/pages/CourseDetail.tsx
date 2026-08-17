@@ -29,7 +29,7 @@ import {
   useCourse,
   useCourseEnrollment,
 } from "@/hooks/use-content";
-import { courses as legacyCourses, getCourse } from "@/data/courses";
+import { getCourse } from "@/data/courses";
 
 export default function CourseDetail() {
   const { slug } = useParams<{ slug: string }>();
@@ -40,7 +40,7 @@ export default function CourseDetail() {
   const course =
     dbCourse ?? (dbCourse === undefined ? (slug ? getCourse(slug) : undefined) : undefined);
   const content = useAllContent();
-  const allCourses = content?.courses ?? legacyCourses;
+  const allCourses = content?.courses ?? [];
   const enrollInCourse = useMutation(api.courses.enrollInCourse);
   const { addCourseToCart, setCartOpen } = useSite();
   // Enrollment state only applies to DB courses (legacy fallback has no id).

@@ -36,12 +36,17 @@ export const myLibrary = query({
       .order("desc")
       .collect();
 
-    return rows.map((row) => ({
-      resourceId: row.resourceId,
-      kind: row.kind,
-      pricePaid: row.pricePaid,
-      purchasedAt: row.purchasedAt,
-    }));
+    // Hidden items are hidden from the library view but purchase history
+    // is never deleted — this preserves order/purchase records for
+    // accounting and customer service.
+    return rows
+      .filter((row) => !row.hidden)
+      .map((row) => ({
+        resourceId: row.resourceId,
+        kind: row.kind,
+        pricePaid: row.pricePaid,
+        purchasedAt: row.purchasedAt,
+      }));
   },
 });
 
@@ -72,17 +77,33 @@ export const ownsResource = query({
 export const purchase = mutation({
   args: {
     resourceIds: v.array(v.string()),
-    kind: v.union(v.literal("paid"), v.literal("free")),
-    pricePaid: v.number(),
     orderId: v.optional(v.id("orders")),
   },
-  handler: async (ctx, { resourceIds, kind, pricePaid, orderId }) => {
+  handler: async (ctx, { resourceIds, orderId }) => {
     const user = await getCurrentUser(ctx);
     if (user === null) {
       throw new Error("You must be signed in to add resources to your library.");
     }
 
+    // Server-side: determine whether these are free or paid, never trust
+    // the client's `kind` field. A client submitting kind:"free" for a
+    // paid resource would bypass payment — so we derive it from the DB.
+    let kind: "free" | "paid" = "free";
+    for (const resourceId of resourceIds) {
+      const row = await ctx.db
+        .query("resources")
+        .withIndex("slug", (q) => q.eq("slug", resourceId))
+        .first();
+      if (!row || row.status !== "published") {
+        throw new Error("A resource in your request is not available.");
+      }
+      if (!row.isFree) {
+        kind = "paid";
+      }
+    }
+
     // Paid purchases must reference a server-verified, paid order.
+    let pricePaid = 0;
     if (kind === "paid") {
       if (orderId === undefined) {
         throw new Error("Paid purchases require a verified order.");
@@ -98,9 +119,10 @@ export const purchase = mutation({
       }
       // Defensive: never trust client-side pricing.
       const expected = await computeTotal(ctx, resourceIds);
-      if (pricePaid < expected) {
+      if (order.total < expected) {
         throw new Error("Payment amount does not match the catalog price.");
       }
+      pricePaid = order.total / Math.max(resourceIds.length, 1);
     }
 
     const owned = await ctx.db
@@ -165,9 +187,8 @@ export const createOrder = mutation({
 
     // Abuse protection: payment initialization is rate-limited per user.
     await ctx.runMutation(api.ratelimit.hit, {
-      key: `order:${user._id}`,
-      limit: 10,
-      windowMs: 60 * 60 * 1000,
+      policy: "order",
+      identifier: user._id,
     });
 
     const resourceIds: string[] = [];
@@ -436,28 +457,9 @@ async function computeTotal(
   return total;
 }
 
-/**
- * Record that the signed-in user downloaded a resource they own. Used for
- * honest platform analytics (the downloads table, never fabricated counts).
- */
-export const recordDownload = mutation({
-  args: { resourceId: v.string() },
-  handler: async (ctx, { resourceId }) => {
-    const user = await getCurrentUser(ctx);
-    if (user === null) return;
-    const owned = await ctx.db
-      .query("purchases")
-      .withIndex("by_user", (q) => q.eq("userId", user._id))
-      .filter((q) => q.eq(q.field("resourceId"), resourceId))
-      .first();
-    if (owned === null) return; // only owners can trigger a download event
-    await ctx.db.insert("downloads", {
-      userId: user._id,
-      resourceId,
-      downloadedAt: Date.now(),
-    });
-  },
-});
+// Note: download recording is handled by files.consumeDownloadToken
+// (the single canonical path). Do NOT add a second download-recording
+// function here — it would allow clients to fabricate download counts.
 
 /** SHA-256 hex digest — WebCrypto is available in every Convex runtime. */
 async function sha256Hex(input: string): Promise<string> {
@@ -468,6 +470,11 @@ async function sha256Hex(input: string): Promise<string> {
     .join("");
 }
 
+/**
+ * Hide a resource from the user's library without deleting the purchase
+ * record. Purchase history is preserved for accounting, order verification,
+ * and customer service. A customer can request their purchase be re-shown.
+ */
 export const removeFromLibrary = mutation({
   args: { resourceId: v.string() },
   handler: async (ctx, { resourceId }) => {
@@ -480,7 +487,27 @@ export const removeFromLibrary = mutation({
       .filter((q) => q.eq(q.field("resourceId"), resourceId))
       .first();
     if (existing) {
-      await ctx.db.delete(existing._id);
+      await ctx.db.patch(existing._id, { hidden: true });
+    }
+  },
+});
+
+/**
+ * Un-hide a previously hidden resource, restoring it to the library.
+ */
+export const showInLibrary = mutation({
+  args: { resourceId: v.string() },
+  handler: async (ctx, { resourceId }) => {
+    const user = await getCurrentUser(ctx);
+    if (user === null) return;
+
+    const existing = await ctx.db
+      .query("purchases")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .filter((q) => q.eq(q.field("resourceId"), resourceId))
+      .first();
+    if (existing) {
+      await ctx.db.patch(existing._id, { hidden: undefined });
     }
   },
 });

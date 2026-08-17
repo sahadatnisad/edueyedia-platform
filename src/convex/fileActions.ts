@@ -49,9 +49,8 @@ export const getSecureDownload = action({
     }
 
     await ctx.runMutation(api.ratelimit.hit, {
-      key: `download:${check.userId}`,
-      limit: 30,
-      windowMs: 60_000,
+      policy: "download",
+      identifier: check.userId,
     });
 
     const file = await ctx.runQuery(api.files.activeResourceFile, {
@@ -63,11 +62,11 @@ export const getSecureDownload = action({
 
     const token = crypto.randomUUID();
     const now = Date.now();
+    // Server determines userId and storageId — the client only sends
+    // filename, fileSize, mimeType which are display-only values.
     await ctx.runMutation(api.files.mintDownloadToken, {
       token,
       resourceId,
-      userId: check.userId,
-      storageId: file.storageId,
       filename: file.displayFilename || file.filename,
       fileSize: file.fileSize,
       mimeType: file.mimeType || "application/pdf",
@@ -133,12 +132,12 @@ export const getLessonFile = action({
 
     const token = crypto.randomUUID();
     const now = Date.now();
+    // Server determines userId and storageId — the client only sends
+    // filename and mimeType which are display-only values.
     await ctx.runMutation(api.files.mintLessonToken, {
       token,
       courseId,
       lessonId,
-      userId: user._id,
-      storageId: lesson.storageId as import("./_generated/dataModel").Id<"_storage">,
       filename: lesson.filename,
       mimeType: lesson.mimeType || "application/pdf",
       expiresAt: now + TOKEN_TTL_MS,

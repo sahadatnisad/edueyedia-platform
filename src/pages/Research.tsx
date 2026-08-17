@@ -17,13 +17,10 @@ import {
   RESEARCH_TOPICS,
   type ResearchContentType,
 } from "@/data/catalog";
-import { extraArticles as legacyExtraArticles } from "@/data/extraArticles";
+
 
 /** All research-centred articles — legacy fallback while the DB loads. */
-const legacyResearchArticles = [
-  ...legacyArticles.filter((a) => a.category === "research"),
-  ...legacyExtraArticles.filter((a) => a.category === "research"),
-];
+// Legacy fallback removed — Convex DB is the sole source of truth.
 
 const TYPE_BY_SLUG: Record<string, ResearchContentType> = {
   "how-to-choose-a-research-topic": "research-guide",
@@ -82,10 +79,10 @@ export default function Research() {
   // Database-backed research articles + research resources (published only),
   // with a legacy fallback while the first Convex payload loads.
   const content = useAllContent();
-  const researchArticles = content?.research ?? legacyResearchArticles;
+  const researchArticles = content?.research ?? [];
   const researchResources =
     content?.resources.filter((r) => r.category === "research") ??
-    legacyResources.filter((r) => r.category === "research");
+    [];
 
   const featured = useMemo(
     () => [...researchArticles].sort(byNewest)[0],

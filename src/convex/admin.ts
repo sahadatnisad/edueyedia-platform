@@ -48,25 +48,45 @@ export const isAdmin = query({
 });
 
 /**
- * Bootstrap: the first user to call this while no admin exists becomes
- * admin. After the first admin exists, non-admins are rejected.
+ * Bootstrap admin: the first user whose email matches BOOTSTRAP_ADMIN_EMAIL
+ * (set in the Convex env) becomes admin. Once any admin exists, only
+ * existing admins can promote others.
+ *
+ * SECURITY: The first logged-in user on a fresh database is NOT
+ * automatically made admin. Only the explicitly configured email can
+ * bootstrap the admin role.
  */
 export const ensureFirstAdmin = mutation({
   args: {},
   handler: async (ctx) => {
     const userId = await getAuthUserId(ctx);
     if (userId === null) throw new Error("You must be signed in.");
+    const user = await ctx.db.get(userId);
+    if (!user) throw new Error("User not found.");
+    if (user.role === "admin") return { granted: false };
+
     const adminCount = await ctx.db
       .query("users")
       .filter((q) => q.eq(q.field("role"), "admin"))
       .collect();
+
     if (adminCount.length > 0) {
-      const user = await ctx.db.get(userId);
-      if (user?.role !== "admin") {
-        throw new Error("An admin already exists.");
-      }
-      return { granted: false };
+      throw new Error("An admin already exists. Ask an admin to grant access.");
     }
+
+    // No admin exists yet — only allow the bootstrap email to become admin.
+    const bootstrapEmail = (process.env.BOOTSTRAP_ADMIN_EMAIL ?? "").trim().toLowerCase();
+    if (!bootstrapEmail) {
+      throw new Error(
+        "No admin has been configured. Set BOOTSTRAP_ADMIN_EMAIL in the Convex environment.",
+      );
+    }
+    if (user.email?.toLowerCase() !== bootstrapEmail) {
+      throw new Error(
+        `Only the configured bootstrap email (${bootstrapEmail}) can create the first admin.`,
+      );
+    }
+
     await ctx.db.patch(userId, { role: "admin" });
     return { granted: true };
   },

@@ -161,6 +161,13 @@ export interface Article {
   blocks: ArticleBlock[];
   relatedResources: string[];
   keywords: string[];
+  /** Research credibility fields — populated from the Convex DB. */
+  references?: string[];
+  doiLinks?: string[];
+  externalSources?: string[];
+  /** Editor/reviewer byline — only shown when an editor is assigned. */
+  editorName?: string;
+  editorRole?: string;
 }
 
 export interface Scholarship {

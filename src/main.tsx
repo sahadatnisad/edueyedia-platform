@@ -111,18 +111,26 @@ class RootErrorBoundary extends React.Component<
   }
   render() {
     if (this.state.hasError) {
+      // Log the full error for debugging but never show stack traces to users.
+      console.error("[Edueyedia] Runtime error:", this.state.message, this.state.stack);
       return (
-        <div className="min-h-screen flex items-center justify-center bg-background text-foreground p-6">
+        <div className="min-h-screen flex items-center justify-center bg-[#FAFAF7] p-6">
           <div className="max-w-lg text-center">
-            <p className="text-sm font-semibold">Preview runtime error</p>
-            <p className="mt-2 text-xs text-muted-foreground break-words">
-              {this.state.message}
+            <p className="text-2xl font-bold text-[#152238]" style={{ fontFamily: "'DM Serif Display', Georgia, serif" }}>
+              Edueyedia
             </p>
-            {this.state.stack && (
-              <pre className="mt-3 text-left text-[10px] leading-4 text-muted-foreground/80 max-h-40 overflow-auto rounded border border-border/60 p-2">
-                {this.state.stack}
-              </pre>
-            )}
+            <p className="mt-6 text-lg font-semibold text-[#152238]">
+              Something went wrong
+            </p>
+            <p className="mt-2 text-sm text-[#64748B]">
+              We encountered an unexpected error. Please try refreshing the page.
+            </p>
+            <button
+              onClick={() => window.location.reload()}
+              className="mt-6 inline-flex h-10 items-center rounded-full bg-[#0F766E] px-6 text-sm font-semibold text-white hover:bg-[#0F766E]/90"
+            >
+              Reload page
+            </button>
           </div>
         </div>
       );
@@ -139,7 +147,15 @@ function LegacyArticleRedirect({ toBase }: { toBase: string }) {
   return <Navigate to={`${toBase}/${slug ?? ""}`} replace />;
 }
 
+/**
+ * Dev-only route syncer for the Freebuff preview iframe. Posts route
+ * changes to the parent frame and listens for navigation commands.
+ * Never renders in production builds.
+ */
 function RouteSyncer() {
+  // Only active in the development/builder preview environment.
+  if (!import.meta.env.DEV) return null;
+
   const location = useLocation();
   useEffect(() => {
     window.parent.postMessage(
@@ -166,7 +182,7 @@ createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <RootErrorBoundary>
       <ToolbarErrorBoundary>
-        <VlyToolbar />
+        {import.meta.env.DEV && <VlyToolbar />}
       </ToolbarErrorBoundary>
       <ThemeProvider
         attribute="class"

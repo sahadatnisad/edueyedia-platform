@@ -27,8 +27,8 @@ export default function Resources() {
   // catalog while the first Convex payload is loading so the page never
   // flashes empty.
   const content = useAllContent();
-  const resources = content?.resources ?? legacyResources;
-  const articles = content?.articles ?? legacyArticles;
+  const resources = content?.resources ?? [];
+  const articles = content?.articles ?? [];
 
   // Filters are database-driven: category tabs come from the DB with live
   // published counts.

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useParams } from "react-router";
+import { Link, Navigate, useParams, useLocation } from "react-router";
 import { cn } from "@/lib/utils";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
@@ -20,7 +20,7 @@ import {
   useArticle,
   useResourcesBySlugs,
 } from "@/hooks/use-content";
-import { getArticle, getResource, articles as legacyArticles } from "@/data/catalog";
+
 import { articlePath } from "@/data/navigation";
 import { PageMeta } from "@/components/seo";
 
@@ -29,9 +29,24 @@ export default function ArticlePage() {
   // DB-backed article (research or blog, published only). Legacy fallback
   // while the first Convex payload loads; once loaded, the DB is authoritative.
   const dbArticle = useArticle(slug);
-  const article =
-    dbArticle ?? (dbArticle === undefined ? (slug ? getArticle(slug) : undefined) : undefined);
+  // DB is the sole source of truth — no legacy fallback.
+  const article = dbArticle;
+  const location = useLocation();
   const content = useAllContent();
+
+  // Canonical URL enforcement: redirect research articles accessed via /blog/*
+  // to /research/*, and blog posts accessed via /research/* to /blog/*.
+  if (article) {
+    const isResearchArticle = article.category === "research";
+    const accessedViaBlog = location.pathname.startsWith("/blog/");
+    const accessedViaResearch = location.pathname.startsWith("/research/");
+    if (isResearchArticle && accessedViaBlog) {
+      return <Navigate to={`/research/${article.slug}`} replace />;
+    }
+    if (!isResearchArticle && accessedViaResearch) {
+      return <Navigate to={`/blog/${article.slug}`} replace />;
+    }
+  }
   const relatedQuery = useResourcesBySlugs(article?.relatedResources);
   const [activeId, setActiveId] = useState<string>("");
 
@@ -106,12 +121,8 @@ export default function ArticlePage() {
   const indexLabel = isResearch ? "Research" : "Blog";
   const indexHref = isResearch ? "/research" : "/blog";
 
-  const relatedResources =
-    relatedQuery ??
-    (article
-      ? article.relatedResources.map(getResource).filter(Boolean).slice(0, 3)
-      : []);
-  const articles = content?.articles ?? legacyArticles;
+  const relatedResources = relatedQuery ?? [];
+  const articles = content?.articles ?? [];
 
   const moreArticles = articles
     .filter((a) => a.slug !== article.slug)
@@ -386,6 +397,101 @@ export default function ArticlePage() {
                 )}
               </div>
             </section>
+          )}
+
+          {/* References, DOI, External Sources — research credibility */}
+          {isResearch && (
+            (article.references?.length ?? 0) > 0 ||
+            (article.doiLinks?.length ?? 0) > 0 ||
+            (article.externalSources?.length ?? 0) > 0
+          ) && (
+            <section className="mt-16">
+              <Reveal>
+                <h2 className="font-serif text-2xl text-navy dark:text-slate-50">
+                  Sources & References
+                </h2>
+              </Reveal>
+
+              {article.references && article.references.length > 0 && (
+                <Reveal delay={0.05}>
+                  <div className="mt-6 rounded-2xl border border-border/60 bg-white p-6 dark:bg-navy-deep/80">
+                    <h3 className="text-xs font-bold tracking-wider text-teal uppercase mb-3">
+                      References
+                    </h3>
+                    <ol className="list-decimal list-inside space-y-2 text-sm text-ink dark:text-slate-200">
+                      {article.references.map((ref, i) => (
+                        <li key={i}>{ref}</li>
+                      ))}
+                    </ol>
+                  </div>
+                </Reveal>
+              )}
+
+              {article.doiLinks && article.doiLinks.length > 0 && (
+                <Reveal delay={0.1}>
+                  <div className="mt-4 rounded-2xl border border-border/60 bg-white p-6 dark:bg-navy-deep/80">
+                    <h3 className="text-xs font-bold tracking-wider text-teal uppercase mb-3">
+                      DOI Links
+                    </h3>
+                    <ul className="space-y-2">
+                      {article.doiLinks.map((doi, i) => (
+                        <li key={i} className="text-sm">
+                          <a
+                            href={doi.startsWith("http") ? doi : `https://doi.org/${doi}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-teal hover:underline break-all"
+                          >
+                            {doi}
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </Reveal>
+              )}
+
+              {article.externalSources && article.externalSources.length > 0 && (
+                <Reveal delay={0.15}>
+                  <div className="mt-4 rounded-2xl border border-border/60 bg-white p-6 dark:bg-navy-deep/80">
+                    <h3 className="text-xs font-bold tracking-wider text-teal uppercase mb-3">
+                      External Sources
+                    </h3>
+                    <ul className="space-y-2">
+                      {article.externalSources.map((src, i) => (
+                        <li key={i} className="text-sm">
+                          <a
+                            href={src.startsWith("http") ? src : `https://${src}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-teal hover:underline break-all"
+                          >
+                            {src}
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </Reveal>
+              )}
+            </section>
+          )}
+
+          {/* Editor/reviewer byline */}
+          {article.editorName && (
+            <Reveal>
+              <div className="mt-8 flex items-center gap-3 rounded-2xl border border-border/60 bg-white px-5 py-3 dark:bg-navy-deep/80">
+                <span className="text-xs font-bold tracking-wider text-teal uppercase">Reviewed by</span>
+                <span className="text-sm font-medium text-navy dark:text-slate-100">
+                  {article.editorName}
+                </span>
+                {article.editorRole && (
+                  <span className="text-xs text-ink-soft dark:text-slate-400">
+                    {article.editorRole}
+                  </span>
+                )}
+              </div>
+            </Reveal>
           )}
 
           {/* keep reading */}

@@ -17,7 +17,7 @@ import { Reveal } from "@/components/Reveal";
 import { SectionHeading } from "@/components/SectionHeading";
 import { PageMeta } from "@/components/seo";
 import { useAllContent } from "@/hooks/use-content";
-import { resources as legacyResources } from "@/data/catalog";
+
 
 const PRINCIPLE_STRIP = [
   {
@@ -157,9 +157,9 @@ const STORY = [
     copy: "Keep knowledge simple, keep opportunities within reach, and keep every page honest. Research. Learn. Advance.",
   },
 ];export default function About() {
-  // Live published-resource count (legacy fallback while the DB loads).
+  // Live published-resource count from Convex.
   const content = useAllContent();
-  const totalResources = content?.resources.length ?? legacyResources.length;
+  const totalResources = content?.resources.length ?? 0;
 
   return (
     <div className="min-h-screen bg-ivory dark:bg-navy-deep">

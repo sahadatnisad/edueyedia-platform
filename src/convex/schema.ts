@@ -371,6 +371,7 @@ const schema = defineSchema(
       pricePaid: v.number(), // taka (0 for free resources)
       purchasedAt: v.number(),
       orderId: v.optional(v.id("orders")), // for paid items — set only after verified payment
+      hidden: v.optional(v.boolean()), // soft-hide: hides from library without deleting purchase/order history
     })
       .index("by_user", ["userId"])
       .index("by_resource", ["resourceId"]),
@@ -531,7 +532,7 @@ const schema = defineSchema(
     }).index("by_created", ["createdAt"]),
   },
   {
-    schemaValidation: false,
+    schemaValidation: true,
   },
 );
 

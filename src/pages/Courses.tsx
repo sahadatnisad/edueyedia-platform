@@ -9,7 +9,7 @@ import { SectionHeading } from "@/components/SectionHeading";
 import { CourseCover } from "@/components/CourseCover";
 import { PageMeta } from "@/components/seo";
 import { useAllContent } from "@/hooks/use-content";
-import { courses as legacyCourses, type Course } from "@/data/courses";
+import type { Course } from "@/data/courses";
 
 const FILTERS: { id: string; label: string }[] = [
   { id: "All", label: "All" },
@@ -26,7 +26,7 @@ export default function Courses() {
 
   // Database-backed courses (published + coming-soon), with legacy fallback.
   const content = useAllContent();
-  const courses = content?.courses ?? legacyCourses;
+  const courses = content?.courses ?? [];
 
   const results = useMemo(() => {
     let list = [...courses];

@@ -41,9 +41,8 @@ export const subscribe = mutation({
 
     // Abuse protection: at most 5 subscribe attempts per address per hour.
     await ctx.runMutation(api.ratelimit.hit, {
-      key: `newsletter:${normalized}`,
-      limit: 5,
-      windowMs: 60 * 60 * 1000,
+      policy: "newsletter",
+      identifier: normalized,
     });
 
     const existing = await ctx.db

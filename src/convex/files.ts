@@ -150,33 +150,50 @@ export const logDownload = mutation({
  * fileActions.getSecureDownload after entitlement was verified — this
  * mutation re-checks the caller owns the resource so a token can never be
  * minted for content the user is not entitled to.
+ *
+ * SECURITY: userId and storageId are derived server-side from the
+ * authenticated caller and the resource file — the client never provides
+ * these values.
  */
 export const mintDownloadToken = mutation({
   args: {
     token: v.string(),
     resourceId: v.string(),
-    userId: v.id("users"),
-    storageId: v.id("_storage"),
     filename: v.string(),
     fileSize: v.number(),
     mimeType: v.string(),
     expiresAt: v.number(),
   },
   handler: async (ctx, args) => {
+    // Server derives the authenticated user — never from the client.
+    const userId = await getCurrentUser(ctx);
+    if (userId === null) throw new Error("You must be signed in.");
     const owned = await ctx.db
       .query("purchases")
-      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .withIndex("by_user", (q) => q.eq("userId", userId._id))
       .filter((q) => q.eq(q.field("resourceId"), args.resourceId))
       .first();
     if (owned === null) {
       throw new Error("You do not own this resource.");
     }
+    // Server determines the storage ID from the active file record.
+    const file = await ctx.db
+      .query("resourceFiles")
+      .withIndex("by_resource", (q) => q.eq("resourceId", args.resourceId))
+      .filter((q) =>
+        q.and(
+          q.eq(q.field("kind"), "main"),
+          q.eq(q.field("status"), "active"),
+        ),
+      )
+      .first();
+    if (!file) throw new Error("No file is attached to this resource.");
     await ctx.db.insert("downloadTokens", {
       token: args.token,
       kind: "resource",
       resourceId: args.resourceId,
-      userId: args.userId,
-      storageId: args.storageId,
+      userId: userId._id,
+      storageId: file.storageId,
       filename: args.filename,
       fileSize: args.fileSize,
       mimeType: args.mimeType,
@@ -191,40 +208,48 @@ export const mintDownloadToken = mutation({
  * Mints a single-use, expiring download token for a course lesson file.
  * Non-preview lessons require an active enrollment (re-checked here);
  * preview lesson files are available to any signed-in user.
+ *
+ * SECURITY: userId and storageId are derived server-side — never from
+ * the client.
  */
 export const mintLessonToken = mutation({
   args: {
     token: v.string(),
     courseId: v.id("courses"),
     lessonId: v.id("courseLessons"),
-    userId: v.id("users"),
-    storageId: v.id("_storage"),
     filename: v.string(),
     mimeType: v.string(),
     expiresAt: v.number(),
   },
   handler: async (ctx, args) => {
+    // Server derives the authenticated user — never from the client.
+    const user = await getCurrentUser(ctx);
+    if (user === null) throw new Error("You must be signed in.");
     const lesson = await ctx.db.get(args.lessonId);
     if (!lesson || lesson.courseId !== args.courseId) {
       throw new Error("Lesson not found.");
     }
+    if (!lesson.fileStorageId) {
+      throw new Error("This lesson has no attached file.");
+    }
     if (!lesson.isPreview) {
       const enrollment = await ctx.db
         .query("enrollments")
-        .withIndex("by_user", (q) => q.eq("userId", args.userId))
+        .withIndex("by_user", (q) => q.eq("userId", user._id))
         .filter((q) => q.eq(q.field("courseId"), args.courseId))
         .first();
       if (enrollment === null || enrollment.status !== "active") {
         throw new Error("Enroll in this course to access its files.");
       }
     }
+    // Server determines the storage ID from the lesson record.
     await ctx.db.insert("downloadTokens", {
       token: args.token,
       kind: "lesson",
       courseId: args.courseId,
       lessonId: args.lessonId,
-      userId: args.userId,
-      storageId: args.storageId,
+      userId: user._id,
+      storageId: lesson.fileStorageId as import("./_generated/dataModel").Id<"_storage">,
       filename: args.filename,
       mimeType: args.mimeType,
       expiresAt: args.expiresAt,
@@ -243,6 +268,10 @@ export const mintLessonToken = mutation({
  * expired or already-used token is rejected, and a token for one item
  * cannot be replayed against another. Only tokens minted by the file
  * actions exist — and those are minted only for entitled users.
+ *
+ * NOTE: This validates and marks the token, but does NOT record the
+ * download in the downloads table. The HTTP action records the download
+ * only after confirming the file blob actually exists in storage.
  */
 export const consumeDownloadToken = mutation({
   args: {
@@ -283,19 +312,35 @@ export const consumeDownloadToken = mutation({
       throw new Error("This download link belongs to another account.");
     }
 
-    // Authorization succeeded and access was issued — only now record it.
-    await ctx.db.insert("downloads", {
-      userId: row.userId,
-      resourceId: row.resourceId ?? "",
-      downloadedAt: Date.now(),
-    });
+    // Mark the token as used so it cannot be replayed.
     await ctx.db.patch(row._id, { usedAt: Date.now() });
 
     return {
       storageId: row.storageId,
       filename: row.filename,
       mimeType: row.mimeType,
+      userId: row.userId,
+      resourceId: row.resourceId,
     };
+  },
+});
+
+/**
+ * Record a confirmed download — called by the HTTP action AFTER the file
+ * blob has been verified to exist in storage. This ensures we never log
+ * phantom downloads for files that are missing or broken.
+ */
+export const recordDownload = mutation({
+  args: {
+    userId: v.id("users"),
+    resourceId: v.string(),
+  },
+  handler: async (ctx, { userId, resourceId }) => {
+    await ctx.db.insert("downloads", {
+      userId,
+      resourceId,
+      downloadedAt: Date.now(),
+    });
   },
 });
 

@@ -154,6 +154,13 @@ http.route({
         );
       }
 
+      // The file exists — now record the download. This is the ONLY place
+      // download recording happens, so phantom records are impossible.
+      await ctx.runMutation(api.files.recordDownload, {
+        userId: file.userId as Id<"users">,
+        resourceId: file.resourceId ?? "",
+      });
+
       const safeName = file.filename.replace(/[^\x20-\x7E]/g, "_").replace(/"/g, "");
       return new Response(blob, {
         status: 200,

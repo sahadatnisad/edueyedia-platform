@@ -143,16 +143,16 @@ export const sendOrderConfirmation = action({
           `<tr>
              <td style="padding:8px 0;color:#334155;font-size:14px;">${
                i.kind === "course" ? "🎓 " : "📕 "
-             }${i.title}</td>
+             }${escapeHtml(i.title)}</td>
              <td align="right" style="padding:8px 0;color:#152238;font-size:14px;font-weight:600;">৳${i.price}</td>
            </tr>`,
       )
       .join("");
 
     const body = `
-      <p style="margin:0 0 16px;color:#334155;font-size:14px;line-height:1.7;">প্রিয় ${order.contactName},</p>
+      <p style="margin:0 0 16px;color:#334155;font-size:14px;line-height:1.7;">প্রিয় ${escapeHtml(order.contactName)},</p>
       <p style="margin:0 0 16px;color:#334155;font-size:14px;line-height:1.7;">
-        আপনার অর্ডার <strong>#${order.orderRef}</strong> নিশ্চিত হয়েছে এবং পেমেন্ট যাচাই করা হয়েছে। আপনার কেনা
+        আপনার অর্ডার <strong>#${escapeHtml(order.orderRef)}</strong> নিশ্চিত হয়েছে এবং পেমেন্ট যাচাই করা হয়েছে। আপনার কেনা
         রিসোর্স ও কোর্স এখন <strong>My Library / My Courses</strong>-এ প্রস্তুত।
       </p>
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #E2E8F0;border-radius:12px;margin:0 0 16px;">

@@ -118,6 +118,18 @@ export async function researchToArticle(
     blocks: row.blocks,
     relatedResources: row.relatedResources,
     keywords: row.tags,
+    // Research credibility fields.
+    references: row.references,
+    doiLinks: row.doiLinks,
+    externalSources: row.externalSources,
+    // Editor/reviewer byline.
+    ...(row.editorId != null
+      ? await (async () => {
+          const editor = await ctx.db.get(row.editorId!);
+          if (!editor || !('name' in editor)) return {};
+          return { editorName: (editor as { name?: string }).name ?? "", editorRole: (editor as { role?: string }).role || "Editor" };
+        })()
+      : {}),
   };
 }
 

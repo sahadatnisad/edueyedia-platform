@@ -8,15 +8,12 @@ import { Reveal } from "@/components/Reveal";
 import { ArticleCard } from "@/components/ArticleCard";
 import { PageMeta } from "@/components/seo";
 import { useAllContent } from "@/hooks/use-content";
-import { articles as legacyArticles } from "@/data/catalog";
-import { extraArticles as legacyExtraArticles } from "@/data/extraArticles";
+
+
 
 /** Blog = broader education & opportunity content (research lives in /research).
  *  Legacy fallback while the first Convex payload loads. */
-const legacyBlogArticles = [
-  ...legacyArticles.filter((a) => a.category !== "research"),
-  ...legacyExtraArticles.filter((a) => a.category !== "research"),
-];
+// Legacy fallback removed — Convex DB is the sole source of truth.
 
 const FILTERS = [
   { id: "all", label: "All" },
@@ -33,7 +30,7 @@ export default function Blog() {
 
   // Database-backed blog posts (published only), with legacy fallback.
   const content = useAllContent();
-  const blogArticles = content?.blog ?? legacyBlogArticles;
+  const blogArticles = content?.blog ?? [];
 
   const featured = blogArticles.find((a) => a.featured) ?? blogArticles[0];
 

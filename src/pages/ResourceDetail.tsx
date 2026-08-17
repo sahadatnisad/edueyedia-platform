@@ -22,7 +22,7 @@ import { PageMeta, breadcrumbJsonLd } from "@/components/seo";
 import { useSite } from "@/components/site/SiteContext";
 import { useAuth } from "@/hooks/use-auth";
 import { useResource, useResourcesBySlugs } from "@/hooks/use-content";
-import { CATEGORY_LABELS, getResource } from "@/data/catalog";
+import { CATEGORY_LABELS } from "@/data/catalog";
 import {
   ArrowLeft,
   ArrowRight,
@@ -57,8 +57,8 @@ export default function ResourceDetail() {
   // DB-backed resource (published only). Falls back to the legacy catalog
   // while the first Convex payload loads; once loaded, the DB is authoritative.
   const dbResource = useResource(slug);
-  const resource =
-    dbResource ?? (dbResource === undefined ? (slug ? getResource(slug) : undefined) : undefined);
+  // DB is the sole source of truth — no legacy fallback.
+  const resource = dbResource;
   const relatedQuery = useResourcesBySlugs(resource?.related);
   const [section, setSection] = useState<SectionId>("overview");
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -162,8 +162,6 @@ export default function ResourceDetail() {
       }
       await purchase({
         resourceIds: [resource.slug],
-        kind: "free",
-        pricePaid: 0,
       });
       toast.success("Added to your library", {
         description: `${resource.title} is now yours, free forever.`,
@@ -177,8 +175,9 @@ export default function ResourceDetail() {
   };
 
   const related =
-    relatedQuery ??
-    (resource ? resource.related.map(getResource).filter(Boolean).slice(0, 3) : []);
+    (relatedQuery ?? [])
+      .filter((r) => r.slug !== resource?.slug)
+      .slice(0, 3);
 
   return (
     <div className="min-h-screen bg-ivory dark:bg-navy-deep">
