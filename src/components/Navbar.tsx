@@ -7,33 +7,18 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { useSite } from "@/components/site/SiteContext";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
-import {
-  ArrowRight,
-  BookMarked,
-  Menu,
-  Search,
-  ShoppingBag,
-  UserRound,
-  X,
-} from "lucide-react";
+import { ArrowRight, BookOpen, Menu, UserRound, X } from "lucide-react";
 
 const NAV_LINKS = [
   { label: "Home", to: "/" },
-  { label: "Research", to: "/research" },
-  { label: "Resource", to: "/resources" },
-  { label: "Blog", to: "/blog" },
-  { label: "Course", to: "/courses" },
-  { label: "About", to: "/about" },
+  { label: "Subjects", to: "/subjects" },
 ];
 
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const { setSearchOpen, setCartOpen, cartCount } = useSite();
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
@@ -44,7 +29,9 @@ export function Navbar() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const accountTarget = isAuthenticated ? "/dashboard" : "/auth?returnTo=/dashboard";
+  const accountTarget = isAuthenticated
+    ? "/dashboard"
+    : "/auth?returnTo=/dashboard";
 
   return (
     <header className="fixed inset-x-0 top-0 z-40 px-4 pt-4 sm:px-6">
@@ -54,22 +41,20 @@ export function Navbar() {
           scrolled ? "h-12 px-3 sm:px-4" : "h-14 px-4 sm:px-5",
         )}
       >
-        {/* Brand */}
         <Link to="/" className="flex items-center gap-2.5">
-          <span className="flex size-8 items-center justify-center rounded-xl bg-navy font-serif text-base text-gold dark:bg-teal dark:text-navy-deep">
-            E
+          <span className="flex size-8 items-center justify-center rounded-xl bg-teal font-serif text-base text-white">
+            N
           </span>
           <span className="flex flex-col leading-none">
-            <span className="text-sm font-bold tracking-[0.22em] text-navy dark:text-slate-100">
-              EDUEYEDIA
+            <span className="text-sm font-bold tracking-[0.18em] text-navy dark:text-slate-100">
+              NCTB HUB
             </span>
-            <span className="mt-0.5 hidden text-[9px] font-semibold tracking-[0.18em] text-ink-soft uppercase sm:block dark:text-slate-400">
-              Research · Learn · Advance
+            <span className="mt-0.5 hidden text-[9px] font-semibold tracking-[0.14em] text-ink-soft uppercase sm:block dark:text-slate-400">
+              Learn &middot; Practice &middot; Master
             </span>
           </span>
         </Link>
 
-        {/* Desktop links */}
         <nav className="hidden items-center gap-1 lg:flex">
           {NAV_LINKS.map((link) => (
             <NavLink
@@ -87,24 +72,28 @@ export function Navbar() {
           ))}
         </nav>
 
-        {/* Actions */}
         <div className="flex items-center gap-1">
           <Button
-            type="button"
+            asChild
             variant="ghost"
-            size="icon"
-            className="rounded-full text-ink-soft hover:text-navy dark:text-slate-300 dark:hover:text-white"
-            aria-label="Search"
-            onClick={() => setSearchOpen(true)}
+            className="hidden rounded-full px-3 sm:inline-flex"
+            size="sm"
           >
-            <Search className="size-4" />
+            <Link to="/subjects">
+              <BookOpen className="mr-1.5 size-3.5" />
+              Subjects
+            </Link>
           </Button>
-          <span className="hidden rounded-full border border-hairline px-2 py-0.5 text-[10px] font-semibold text-ink-soft md:inline dark:border-white/15 dark:text-slate-400">
-            ⌘K
-          </span>
-
-          <ThemeToggle className="rounded-full text-ink-soft hover:text-navy dark:text-slate-300 dark:hover:text-white" />
-
+          <Button
+            asChild
+            className="ml-1 hidden rounded-full px-4 sm:inline-flex"
+            size="sm"
+          >
+            <Link to={accountTarget}>
+              {isAuthenticated ? "Dashboard" : "Get Started"}
+              <ArrowRight className="ml-1 size-3.5" />
+            </Link>
+          </Button>
           <Button
             type="button"
             variant="ghost"
@@ -115,33 +104,6 @@ export function Navbar() {
           >
             <UserRound className="size-4" />
           </Button>
-
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="relative rounded-full text-ink-soft hover:text-navy dark:text-slate-300 dark:hover:text-white"
-            aria-label="Cart"
-            onClick={() => setCartOpen(true)}
-          >
-            <ShoppingBag className="size-4" />
-            {cartCount > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full bg-gold text-[10px] font-bold text-navy">
-                {cartCount}
-              </span>
-            )}
-          </Button>
-
-          <Button
-            asChild
-            className="ml-1 hidden rounded-full px-4 sm:inline-flex"
-            size="sm"
-          >
-            <Link to="/resources">
-              Explore <ArrowRight className="size-3.5" />
-            </Link>
-          </Button>
-
           <Button
             type="button"
             variant="ghost"
@@ -155,16 +117,20 @@ export function Navbar() {
         </div>
       </div>
 
-      {/* Mobile menu */}
       <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
-        <SheetContent side="right" className="w-[85%] max-w-sm p-0 sm:max-w-sm">
+        <SheetContent
+          side="right"
+          className="w-[85%] max-w-sm p-0 sm:max-w-sm"
+        >
           <SheetHeader className="border-b border-border px-6 py-5">
             <SheetTitle className="flex items-center justify-between">
               <span className="flex items-center gap-2">
-                <span className="flex size-8 items-center justify-center rounded-xl bg-navy font-serif text-base text-gold dark:bg-teal dark:text-navy-deep">
-                  E
+                <span className="flex size-8 items-center justify-center rounded-xl bg-teal font-serif text-base text-white">
+                  N
                 </span>
-                <span className="text-sm font-bold tracking-[0.22em]">EDUEYEDIA</span>
+                <span className="text-sm font-bold tracking-[0.18em]">
+                  NCTB HUB
+                </span>
               </span>
               <Button
                 type="button"
@@ -196,20 +162,9 @@ export function Navbar() {
                 size="lg"
                 onClick={() => setMenuOpen(false)}
               >
-                <Link to="/resources">
-                  Explore Resources <ArrowRight className="size-4" />
-                </Link>
-              </Button>
-              <Button
-                asChild
-                variant="outline"
-                className="mt-2.5 w-full rounded-full"
-                size="lg"
-                onClick={() => setMenuOpen(false)}
-              >
                 <Link to={accountTarget}>
-                  <BookMarked className="size-4" />
-                  {isAuthenticated ? "My Library" : "Sign in / Account"}
+                  {isAuthenticated ? "My Dashboard" : "Get Started Free"}
+                  <ArrowRight className="ml-2 size-4" />
                 </Link>
               </Button>
             </div>

@@ -1,13 +1,9 @@
-import "@vly-ai/integrations";
 import { Toaster } from "@/components/ui/sonner";
 import { RequireAuth } from "@/components/RequireAuth";
-import { RequireAdmin } from "@/components/RequireAdmin";
-import { VlyToolbar } from "../vly-toolbar-readonly.tsx";
 import { ConvexAuthProvider } from "@convex-dev/auth/react";
 import { ConvexReactClient } from "convex/react";
-import { SiteProviders } from "@/components/site/SiteProviders";
 import { ThemeProvider } from "next-themes";
-import React, { StrictMode, useEffect, lazy, Suspense } from "react";
+import React, { StrictMode, lazy, Suspense } from "react";
 import { createRoot } from "react-dom/client";
 import {
   BrowserRouter,
@@ -15,58 +11,18 @@ import {
   Route,
   Routes,
   useLocation,
-  useParams,
 } from "react-router";
 import "./index.css";
 
-// Lazy load route components for better code splitting
-const Landing = lazy(() => import("./pages/Landing.tsx"));
-const AuthPage = lazy(() => import("./pages/Auth.tsx"));
-const Dashboard = lazy(() => import("./pages/Dashboard.tsx"));
-const Resources = lazy(() => import("./pages/Resources.tsx"));
-const ResourceDetail = lazy(() => import("./pages/ResourceDetail.tsx"));
-const Research = lazy(() => import("./pages/Research.tsx"));
-const Blog = lazy(() => import("./pages/Blog.tsx"));
-const ArticlePage = lazy(() => import("./pages/ArticlePage.tsx"));
-const Courses = lazy(() => import("./pages/Courses.tsx"));
-const CourseDetail = lazy(() => import("./pages/CourseDetail.tsx"));
-const CourseLearn = lazy(() => import("./pages/CourseLearn.tsx"));
-const About = lazy(() => import("./pages/About.tsx"));
-const Contact = lazy(() => import("./pages/Contact.tsx"));
-const FAQ = lazy(() => import("./pages/FAQ.tsx"));
-const Unsubscribe = lazy(() => import("./pages/Unsubscribe.tsx"));
-const LegalPage = lazy(() => import("./pages/LegalPage.tsx"));
-const Checkout = lazy(() => import("./pages/Checkout.tsx"));
-const NotFound = lazy(() => import("./pages/NotFound.tsx"));
-// Admin
-const AdminShell = lazy(() => import("./components/admin/AdminShell.tsx"));
-const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard.tsx"));
-const AdminResources = lazy(() => import("./pages/admin/AdminResources.tsx"));
-const AdminResourceEditor = lazy(() =>
-  import("./pages/admin/AdminResources.tsx").then((m) => ({ default: m.AdminResourceEditor })),
-);
-const AdminResearch = lazy(() => import("./pages/admin/AdminResearch.tsx"));
-const AdminResearchEditor = lazy(() =>
-  import("./pages/admin/AdminResearch.tsx").then((m) => ({ default: m.AdminResearchEditor })),
-);
-const AdminBlog = lazy(() => import("./pages/admin/AdminBlog.tsx"));
-const AdminBlogEditor = lazy(() =>
-  import("./pages/admin/AdminBlog.tsx").then((m) => ({ default: m.AdminBlogEditor })),
-);
-const AdminCourses = lazy(() => import("./pages/admin/AdminCourses.tsx"));
-const AdminCourseEditor = lazy(() =>
-  import("./pages/admin/AdminCourses.tsx").then((m) => ({ default: m.AdminCourseEditor })),
-);
-const AdminAuthors = lazy(() => import("./pages/admin/AdminAuthors.tsx"));
-const AdminAuthorEditor = lazy(() =>
-  import("./pages/admin/AdminAuthors.tsx").then((m) => ({ default: m.AdminAuthorEditor })),
-);
-const AdminOrders = lazy(() => import("./pages/admin/AdminOrders.tsx"));
-const AdminSettings = lazy(() => import("./pages/admin/AdminSettings.tsx"));
-const AdminInbox = lazy(() => import("./pages/admin/AdminInbox.tsx"));
-const AdminNewsletter = lazy(() => import("./pages/admin/AdminNewsletter.tsx"));
+/* ── Lazy route imports ─────────────────────────────────────────────── */
+const Landing = lazy(() => import("./pages/Landing"));
+const AuthPage = lazy(() => import("./pages/Auth"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Subjects = lazy(() => import("./pages/Subjects"));
+const SubjectDetail = lazy(() => import("./pages/SubjectDetail"));
+const LessonPage = lazy(() => import("./pages/LessonPage"));
+const NotFound = lazy(() => import("./pages/NotFound"));
 
-// Simple loading fallback for route transitions
 function RouteLoading() {
   return (
     <div className="min-h-screen flex items-center justify-center">
@@ -75,59 +31,32 @@ function RouteLoading() {
   );
 }
 
-/** Silent error boundary — if VlyToolbar crashes it renders nothing instead of
- *  crashing the whole app (e.g. hook errors in WebContainer environment). */
-class ToolbarErrorBoundary extends React.Component<
-  { children: React.ReactNode },
-  { hasError: boolean }
-> {
-  state = { hasError: false };
-  static getDerivedStateFromError() {
-    return { hasError: true };
-  }
-  componentDidCatch(err: Error) {
-    console.warn("[VlyToolbar] Caught error, toolbar disabled:", err.message);
-  }
-  render() {
-    return this.state.hasError ? null : this.props.children;
-  }
-}
-
-/** Hard guard so runtime errors never leave the preview as a blank page. */
 class RootErrorBoundary extends React.Component<
   { children: React.ReactNode },
-  { hasError: boolean; message: string; stack: string }
+  { hasError: boolean; message: string }
 > {
-  state = { hasError: false, message: "", stack: "" };
+  state = { hasError: false, message: "" };
   static getDerivedStateFromError(error: Error) {
-    return {
-      hasError: true,
-      message: error.message || "Unknown runtime error",
-      stack: error.stack || "",
-    };
+    return { hasError: true, message: error.message || "Unknown error" };
   }
   componentDidCatch(err: Error) {
-    console.error("[WebContainer preview] Root crash:", err);
+    console.error("[NCTB Hub] Runtime error:", err);
   }
   render() {
     if (this.state.hasError) {
-      // Log the full error for debugging but never show stack traces to users.
-      console.error("[Edueyedia] Runtime error:", this.state.message, this.state.stack);
       return (
-        <div className="min-h-screen flex items-center justify-center bg-[#FAFAF7] p-6">
+        <div className="min-h-screen flex items-center justify-center bg-background p-6">
           <div className="max-w-lg text-center">
-            <p className="text-2xl font-bold text-[#152238]" style={{ fontFamily: "'DM Serif Display', Georgia, serif" }}>
-              Edueyedia
+            <p className="text-2xl font-bold text-navy dark:text-slate-100 font-serif">
+              NCTB AI Learning Hub
             </p>
-            <p className="mt-6 text-lg font-semibold text-[#152238]">
-              Something went wrong
-            </p>
-            <p className="mt-2 text-sm text-[#64748B]">
-              We encountered an unexpected error. Please try refreshing the page.
+            <p className="mt-6 text-lg font-semibold">Something went wrong</p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Please try refreshing the page.
             </p>
             <button
               onClick={() => window.location.reload()}
-              className="mt-6 inline-flex h-10 items-center rounded-full bg-[#0F766E] px-6 text-sm font-semibold text-white hover:bg-[#0F766E]/90"
+              className="mt-6 inline-flex h-10 items-center rounded-full bg-teal px-6 text-sm font-semibold text-white hover:bg-teal/90"
             >
               Reload page
             </button>
@@ -141,49 +70,22 @@ class RootErrorBoundary extends React.Component<
 
 const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string);
 
-/** Redirect legacy article URLs to the new blog/research structure. */
-function LegacyArticleRedirect({ toBase }: { toBase: string }) {
-  const { slug } = useParams<{ slug: string }>();
-  return <Navigate to={`${toBase}/${slug ?? ""}`} replace />;
-}
-
-/**
- * Dev-only route syncer for the Freebuff preview iframe. Posts route
- * changes to the parent frame and listens for navigation commands.
- * Never renders in production builds.
- */
+/** Dev-only route syncer for Freebuff preview iframe. */
 function RouteSyncer() {
-  // Only active in the development/builder preview environment.
   if (!import.meta.env.DEV) return null;
-
   const location = useLocation();
-  useEffect(() => {
+  React.useEffect(() => {
     window.parent.postMessage(
       { type: "iframe-route-change", path: location.pathname },
       "*",
     );
   }, [location.pathname]);
-
-  useEffect(() => {
-    function handleMessage(event: MessageEvent) {
-      if (event.data?.type === "navigate") {
-        if (event.data.direction === "back") window.history.back();
-        if (event.data.direction === "forward") window.history.forward();
-      }
-    }
-    window.addEventListener("message", handleMessage);
-    return () => window.removeEventListener("message", handleMessage);
-  }, []);
-
   return null;
 }
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <RootErrorBoundary>
-      <ToolbarErrorBoundary>
-        {import.meta.env.DEV && <VlyToolbar />}
-      </ToolbarErrorBoundary>
       <ThemeProvider
         attribute="class"
         defaultTheme="light"
@@ -192,110 +94,39 @@ createRoot(document.getElementById("root")!).render(
       >
         <ConvexAuthProvider client={convex}>
           <BrowserRouter>
-            <SiteProviders>
-              <RouteSyncer />
-              <Suspense fallback={<RouteLoading />}>
-                <Routes>
-                  <Route path="/" element={<Landing />} />
-                  <Route
-                    path="/auth"
-                    element={<AuthPage redirectAfterAuth="/dashboard" />}
-                  />
-                  <Route
-                    path="/dashboard"
-                    element={
-                      <RequireAuth>
-                        <Dashboard />
-                      </RequireAuth>
-                    }
-                  />
-                  <Route path="/resources" element={<Resources />} />
-                  <Route path="/resources/:slug" element={<ResourceDetail />} />
-                  <Route path="/research" element={<Research />} />
-                  <Route path="/research/:slug" element={<ArticlePage />} />
-                  <Route path="/blog" element={<Blog />} />
-                  <Route path="/blog/:slug" element={<ArticlePage />} />
-                  <Route path="/courses" element={<Courses />} />
-                  <Route path="/courses/:slug" element={<CourseDetail />} />
-                  <Route
-                    path="/courses/:slug/learn"
-                    element={
-                      <RequireAuth>
-                        <CourseLearn />
-                      </RequireAuth>
-                    }
-                  />
-                  <Route
-                    path="/courses/:slug/learn/:lessonId"
-                    element={
-                      <RequireAuth>
-                        <CourseLearn />
-                      </RequireAuth>
-                    }
-                  />
-                  <Route path="/about" element={<About />} />
-                  <Route path="/contact" element={<Contact />} />
-                  <Route path="/faq" element={<FAQ />} />
-                  <Route path="/unsubscribe" element={<Unsubscribe />} />
-                  <Route path="/privacy" element={<LegalPage page="privacy" />} />
-                  <Route path="/terms" element={<LegalPage page="terms" />} />
-                  <Route path="/refund-policy" element={<LegalPage page="refund" />} />
-                  <Route path="/digital-product-policy" element={<LegalPage page="digital-product" />} />
-                  <Route path="/copyright" element={<LegalPage page="copyright" />} />
-                  <Route path="/disclaimer" element={<LegalPage page="disclaimer" />} />
-                  <Route
-                    path="/checkout"
-                    element={
-                      <RequireAuth>
-                        <Checkout />
-                      </RequireAuth>
-                    }
-                  />
-                  {/* Legacy URL redirects — Insights/Learn now live under /blog */}
-                  <Route path="/insights" element={<Navigate to="/blog" replace />} />
-                  <Route
-                    path="/insights/:slug"
-                    element={<LegacyArticleRedirect toBase="/blog" />}
-                  />
-                  <Route path="/learn" element={<Navigate to="/blog" replace />} />
-                  <Route
-                    path="/learn/:slug"
-                    element={<LegacyArticleRedirect toBase="/blog" />}
-                  />
-                  {/* Admin CMS — guarded by RequireAdmin (server re-verifies) */}
-                  <Route
-                    path="/admin"
-                    element={
-                      <RequireAdmin>
-                        <AdminShell />
-                      </RequireAdmin>
-                    }
-                  >
-                    <Route index element={<AdminDashboard />} />
-                    <Route path="resources" element={<AdminResources />} />
-                    <Route path="resources/new" element={<AdminResourceEditor />} />
-                    <Route path="resources/:id" element={<AdminResourceEditor />} />
-                    <Route path="research" element={<AdminResearch />} />
-                    <Route path="research/new" element={<AdminResearchEditor />} />
-                    <Route path="research/:id" element={<AdminResearchEditor />} />
-                    <Route path="blog" element={<AdminBlog />} />
-                    <Route path="blog/new" element={<AdminBlogEditor />} />
-                    <Route path="blog/:id" element={<AdminBlogEditor />} />
-                    <Route path="courses" element={<AdminCourses />} />
-                    <Route path="courses/new" element={<AdminCourseEditor />} />
-                    <Route path="courses/:id" element={<AdminCourseEditor />} />
-                    <Route path="authors" element={<AdminAuthors />} />
-                    <Route path="inbox" element={<AdminInbox />} />
-                    <Route path="authors/new" element={<AdminAuthorEditor />} />
-                    <Route path="authors/:id" element={<AdminAuthorEditor />} />
-                    <Route path="orders" element={<AdminOrders />} />
-                    <Route path="newsletter" element={<AdminNewsletter />} />
-                    <Route path="settings" element={<AdminSettings />} />
-                  </Route>
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </Suspense>
-            </SiteProviders>
+            <RouteSyncer />
+            <Suspense fallback={<RouteLoading />}>
+              <Routes>
+                {/* Public */}
+                <Route path="/" element={<Landing />} />
+                <Route
+                  path="/auth"
+                  element={<AuthPage redirectAfterAuth="/dashboard" />}
+                />
+                <Route path="/subjects" element={<Subjects />} />
+                <Route path="/subjects/:subjectId" element={<SubjectDetail />} />
+
+                {/* Protected student routes */}
+                <Route
+                  path="/dashboard"
+                  element={
+                    <RequireAuth>
+                      <Dashboard />
+                    </RequireAuth>
+                  }
+                />
+                <Route
+                  path="/learn/:lessonId"
+                  element={
+                    <RequireAuth>
+                      <LessonPage />
+                    </RequireAuth>
+                  }
+                />
+
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Suspense>
           </BrowserRouter>
           <Toaster />
         </ConvexAuthProvider>
